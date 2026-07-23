@@ -1,0 +1,56 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Notebooks / IDE / OS ----
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Project-internal spec (not part of the public repo) ----
+CLAUDE.md
+
+# ---- Project artifacts (all regenerable) ----
+# Trained checkpoints + TensorBoard logs. The full-precision best.pth is ~124 MB
+# (> GitHub's 100 MB limit) so it is NOT committed. Regenerate with
+# `python main.py --train`, then shrink it with
+# `python scripts/compress_checkpoint.py`.
+runs/
+*.pth
+*.pt
+*.ckpt
+
+# Exception: the compact fp16 pre-trained model (~62 MB, under GitHub's limit) IS
+# committed so the repo works out of the box.
+!models/
+!models/pretrained_fp16.pth
+
+# Generated synthetic dataset (recreate with data/generate_synthetic.py)
+data/ground_truth/
+data/noisy_input/
+data/intermediate/
+# Keep the data/raw drop-in folder (and its note) but ignore images placed there
+data/raw/*
+!data/raw/README.txt
+
+# Inference outputs + reports
+results/
+results_cv/
+
+# Gradio cache / temp / flagged files
+.gradio/
+flagged/
+gradio_cached_examples/

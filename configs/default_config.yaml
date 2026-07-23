@@ -1,0 +1,47 @@
+# =============================================================================
+# Default configuration for the Phase-Contrast Clean-Up Pipeline
+# -----------------------------------------------------------------------------
+# Every hyperparameter for both the classical OpenCV path and the deep-learning
+# path lives here so experiments are reproducible from a single file.
+# =============================================================================
+
+# ----- Classical OpenCV preprocessing -----------------------------------------
+preprocessor:
+  # Difference-of-Gaussians (halo suppression).
+  # sigma2 MUST be > sigma1: sigma1 tracks the cell body (high freq),
+  # sigma2 must STRADDLE the broad low-frequency halo — so it is set well above
+  # the PRD's edge-scale default of 1.6. Tune sigma2 to your halo width in px.
+  dog_sigma1: 1.0
+  dog_sigma2: 8.0
+  dog_alpha: 0.6          # subtraction strength; higher = more aggressive halo removal
+
+  # CLAHE (Contrast Limited Adaptive Histogram Equalisation).
+  clahe_clip_limit: 2.0
+  clahe_grid_size: [8, 8]
+
+# ----- Residual U-Net ---------------------------------------------------------
+model:
+  in_channels: 1
+  out_channels: 1
+  base_channels: 64       # first encoder level width; doubles each level
+
+# ----- Data -------------------------------------------------------------------
+data:
+  patch_size: 128         # 128 trains ~4x faster on CPU; raise to 256 on a GPU
+  val_split: 0.2          # fraction of paired images held out for validation
+  num_workers: 0          # 0 is safe on Windows; raise on Linux for speed
+
+# ----- Training ---------------------------------------------------------------
+training:
+  epochs: 15              # enough to converge on synthetic data; raise on a GPU
+  batch_size: 16
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  loss: l1                # "l1" (sharper) or "mse"
+  scheduler_patience: 5   # ReduceLROnPlateau patience (epochs)
+  seed: 42
+
+# ----- Paths ------------------------------------------------------------------
+paths:
+  runs_dir: runs
+  best_checkpoint: runs/best.pth
