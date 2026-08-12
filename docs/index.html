@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase-Contrast Clean-Up — interactive halo suppression</title>
+<meta name="description" content="Tune Difference-of-Gaussians halo suppression and CLAHE on phase-contrast microscopy images, live in the browser, with PSNR/SSIM updating as you drag.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>Phase-Contrast Clean-Up</h1>
+    <p class="tagline">
+      Phase-contrast microscopy wraps every cell in a bright <strong>halo</strong> that
+      confuses downstream segmentation. This page runs the project's classical
+      suppression front-end — Difference-of-Gaussians plus CLAHE — <strong>live in your
+      browser</strong>, so you can drag the parameters and watch both the image and the
+      metrics respond.
+    </p>
+    <p class="links">
+      <a href="https://github.com/akshayaa-403/phase-contrast-denoising">Source</a>
+      <a href="#how">How it works</a>
+      <a href="#honesty">What is precomputed</a>
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="noSamples" class="panel notice" hidden>
+    <h2>No sample images published yet</h2>
+    <p>This page reads <code>docs/samples/manifest.json</code>. Generate it with:</p>
+    <pre><code>python data/generate_synthetic.py --num 100 --size 256
+python scripts/make_demo_assets.py --count 6</code></pre>
+    <p>Then commit <code>docs/samples/</code>. Preview locally with <code>python -m http.server -d docs 8000</code>.</p>
+  </section>
+
+  <section id="app" hidden>
+
+    <div class="panel">
+      <span class="label">Sample</span>
+      <div class="sample-strip" id="sampleStrip"></div>
+      <div class="upload-row">
+        <label class="button ghost" for="fileInput">Use my own image…</label>
+        <input type="file" id="fileInput" accept="image/*" hidden>
+        <span class="hint" id="sourceLabel"></span>
+      </div>
+    </div>
+
+    <div class="panel stages">
+      <div class="stage">
+        <canvas id="canvasInput"></canvas>
+        <figcaption>Input <span class="sub">phase contrast, with halo</span></figcaption>
+      </div>
+      <div class="stage">
+        <canvas id="canvasDog"></canvas>
+        <figcaption>After DoG <span class="sub">halo suppressed</span></figcaption>
+      </div>
+      <div class="stage">
+        <canvas id="canvasCv"></canvas>
+        <figcaption>+ CLAHE <span class="sub">the classical output</span></figcaption>
+      </div>
+      <div class="stage" id="hybridStage">
+        <canvas id="canvasHybrid"></canvas>
+        <figcaption>Hybrid U-Net <span class="sub">precomputed</span></figcaption>
+      </div>
+      <div class="stage" id="truthStage">
+        <canvas id="canvasTruth"></canvas>
+        <figcaption>Ground truth <span class="sub">clean target</span></figcaption>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="controls-head">
+        <span class="label">Parameters</span>
+        <div class="controls-actions">
+          <span class="value" id="timing"></span>
+          <button type="button" class="button ghost" id="resetBtn">Reset to config defaults</button>
+        </div>
+      </div>
+
+      <div class="sliders">
+        <label class="slider">
+          <span class="slider-label">σ₁ <span class="sub">cell body scale</span></span>
+          <input type="range" id="sigma1" min="0.2" max="6" step="0.1">
+          <output id="sigma1Out"></output>
+        </label>
+        <label class="slider">
+          <span class="slider-label">σ₂ <span class="sub">halo width</span></span>
+          <input type="range" id="sigma2" min="1" max="24" step="0.5">
+          <output id="sigma2Out"></output>
+        </label>
+        <label class="slider">
+          <span class="slider-label">α <span class="sub">subtraction strength</span></span>
+          <input type="range" id="alpha" min="0" max="2" step="0.05">
+          <output id="alphaOut"></output>
+        </label>
+        <label class="slider">
+          <span class="slider-label">CLAHE clip <span class="sub">contrast ceiling</span></span>
+          <input type="range" id="clip" min="0.5" max="10" step="0.5">
+          <output id="clipOut"></output>
+        </label>
+        <label class="slider">
+          <span class="slider-label">CLAHE tiles <span class="sub">grid per axis</span></span>
+          <input type="range" id="tiles" min="2" max="16" step="1">
+          <output id="tilesOut"></output>
+        </label>
+      </div>
+      <p class="hint" id="sigmaWarning" hidden>σ₂ must stay above σ₁ — the wide blur is what captures the halo.</p>
+    </div>
+
+    <div class="panel">
+      <span class="label">Measured against ground truth</span>
+      <table class="metrics" id="metricsTable">
+        <thead>
+          <tr><th>Stage</th><th>PSNR (dB)</th><th>SSIM</th><th class="ref">Python reference</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="hint" id="metricsNote"></p>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="panel about" id="how">
+    <h2>How the classical path works</h2>
+    <p>
+      The halo is a broad, low-frequency ring, while the cell body carries the
+      high-frequency detail. Blurring at two scales separates them: σ₁ keeps the
+      cell, σ₂ is set wide enough to straddle the halo, and subtracting a
+      fraction α of their difference removes the ring without hollowing the cell
+      out. CLAHE then restores local contrast in a way that plain histogram
+      equalisation cannot, because its per-tile clip limit stops background noise
+      from being amplified into the foreground.
+    </p>
+    <p>
+      Both are a few hundred lines of arithmetic, which is why they can run here
+      on every drag. <a href="cv.js">cv.js</a> is a direct port of
+      <code>src/preprocessor.py</code>; <code>scripts/verify_web_pipeline.py</code>
+      runs both implementations over the same images and fails if they disagree
+      by more than a set margin. At the time of writing they agree to
+      <strong>~50 dB PSNR</strong> (max per-pixel difference ≈ 0.016 of full scale),
+      the remainder coming from tile-boundary interpolation.
+    </p>
+
+    <h2>Why the metrics look the way they do</h2>
+    <p>
+      Something worth noticing: the classical output usually scores
+      <em>worse</em> PSNR than the untouched input, while the U-Net scores far
+      better. That is not a bug. PSNR compares absolute intensities, and CLAHE
+      deliberately rewrites the global tone curve — so an image that is visibly
+      cleaner can move further from the target in absolute terms. The residual
+      U-Net is trained against that target, so it stays on the intensity scale
+      PSNR rewards. It is a good demonstration of why a single number is a poor
+      proxy for "does this help my segmentation".
+    </p>
+  </section>
+
+  <section class="panel about" id="honesty">
+    <h2>What runs here, and what does not</h2>
+    <ul>
+      <li><strong>Live, in your browser:</strong> the DoG + CLAHE pipeline, and the PSNR/SSIM numbers, recomputed on every parameter change.</li>
+      <li><strong>Precomputed:</strong> the residual U-Net column. At 31M parameters it is a ~124MB float32 download and far too slow for WebAssembly, so its output is rendered ahead of time by <code>scripts/make_demo_assets.py</code> and served as an image. Run it yourself with <code>python main.py --mode hybrid</code>.</li>
+      <li><strong>Synthetic data:</strong> the samples come from <code>data/generate_synthetic.py</code>, which simulates halo artifacts over clean targets. Real phase-contrast microscopy has no paired ground truth, which is exactly why the project is built this way.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><p>Part of the phase-contrast clean-up pipeline. Runs entirely client-side.</p></div>
+</footer>
+
+<script src="cv.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

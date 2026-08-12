@@ -1,0 +1,133 @@
+{
+  "defaults": {
+    "sigma1": 1.0,
+    "sigma2": 8.0,
+    "alpha": 0.6,
+    "clipLimit": 2.0,
+    "tilesX": 8,
+    "tilesY": 8
+  },
+  "has_model_outputs": true,
+  "samples": [
+    {
+      "id": "img_0000",
+      "noisy": "img_0000_noisy.png",
+      "truth": "img_0000_truth.png",
+      "metrics": {
+        "raw": {
+          "psnr": 14.669,
+          "ssim": 0.1421
+        },
+        "cv_only": {
+          "psnr": 6.68,
+          "ssim": 0.0649
+        },
+        "hybrid": {
+          "psnr": 22.831,
+          "ssim": 0.2227
+        }
+      },
+      "hybrid": "img_0000_hybrid.png"
+    },
+    {
+      "id": "img_0001",
+      "noisy": "img_0001_noisy.png",
+      "truth": "img_0001_truth.png",
+      "metrics": {
+        "raw": {
+          "psnr": 11.421,
+          "ssim": 0.1546
+        },
+        "cv_only": {
+          "psnr": 7.209,
+          "ssim": 0.0778
+        },
+        "hybrid": {
+          "psnr": 22.308,
+          "ssim": 0.2436
+        }
+      },
+      "hybrid": "img_0001_hybrid.png"
+    },
+    {
+      "id": "img_0002",
+      "noisy": "img_0002_noisy.png",
+      "truth": "img_0002_truth.png",
+      "metrics": {
+        "raw": {
+          "psnr": 12.249,
+          "ssim": 0.2879
+        },
+        "cv_only": {
+          "psnr": 8.404,
+          "ssim": 0.1493
+        },
+        "hybrid": {
+          "psnr": 19.242,
+          "ssim": 0.3503
+        }
+      },
+      "hybrid": "img_0002_hybrid.png"
+    },
+    {
+      "id": "img_0003",
+      "noisy": "img_0003_noisy.png",
+      "truth": "img_0003_truth.png",
+      "metrics": {
+        "raw": {
+          "psnr": 15.108,
+          "ssim": 0.2794
+        },
+        "cv_only": {
+          "psnr": 8.424,
+          "ssim": 0.134
+        },
+        "hybrid": {
+          "psnr": 19.398,
+          "ssim": 0.47
+        }
+      },
+      "hybrid": "img_0003_hybrid.png"
+    },
+    {
+      "id": "img_0004",
+      "noisy": "img_0004_noisy.png",
+      "truth": "img_0004_truth.png",
+      "metrics": {
+        "raw": {
+          "psnr": 10.641,
+          "ssim": 0.2384
+        },
+        "cv_only": {
+          "psnr": 8.049,
+          "ssim": 0.1314
+        },
+        "hybrid": {
+          "psnr": 18.259,
+          "ssim": 0.2871
+        }
+      },
+      "hybrid": "img_0004_hybrid.png"
+    },
+    {
+      "id": "img_0005",
+      "noisy": "img_0005_noisy.png",
+      "truth": "img_0005_truth.png",
+      "metrics": {
+        "raw": {
+          "psnr": 13.123,
+          "ssim": 0.135
+        },
+        "cv_only": {
+          "psnr": 7.514,
+          "ssim": 0.0602
+        },
+        "hybrid": {
+          "psnr": 21.687,
+          "ssim": 0.586
+        }
+      },
+      "hybrid": "img_0005_hybrid.png"
+    }
+  ]
+}

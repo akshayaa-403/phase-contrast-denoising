@@ -20,8 +20,13 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# ---- Project-internal spec (not part of the public repo) ----
+# ---- Project-internal docs (not part of the public repo) ----
 CLAUDE.md
+# Presentation/video scripts, in any of the names they get saved under.
+VIDEO_SCRIPT.md
+*video_script*.md
+*VIDEO_SCRIPT*.md
+job_interview_video_script.md
 
 # ---- Project artifacts (all regenerable) ----
 # Trained checkpoints + TensorBoard logs. The full-precision best.pth is ~124 MB
