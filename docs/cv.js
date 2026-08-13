@@ -327,6 +327,87 @@
     return count ? total / count : NaN;
   }
 
+  // ------------------------------------------------- no-reference measures
+  /**
+   * Mean squared gradient magnitude (Sobel), a stand-in for "how much edge
+   * detail is present". Cell membranes are edges, so more is better here --
+   * but only alongside the background measure below, since amplifying noise
+   * also raises it.
+   */
+  function edgeEnergy(data, width, height) {
+    let total = 0;
+    let count = 0;
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const i = y * width + x;
+        const gx =
+          (data[i - width + 1] + 2 * data[i + 1] + data[i + width + 1]) -
+          (data[i - width - 1] + 2 * data[i - 1] + data[i + width - 1]);
+        const gy =
+          (data[i + width - 1] + 2 * data[i + width] + data[i + width + 1]) -
+          (data[i - width - 1] + 2 * data[i - width] + data[i - width + 1]);
+        total += gx * gx + gy * gy;
+        count++;
+      }
+    }
+    return count ? total / count : 0;
+  }
+
+  /**
+   * Variance of the flattest tiles, as a proxy for background noise.
+   *
+   * The darkest-and-flattest quarter of an 8x8 tiling is almost certainly
+   * background rather than cells, so its variance tracks what the halo
+   * suppression is doing to empty space. Lower is better.
+   */
+  function backgroundVariance(data, width, height, tiles = 8) {
+    const variances = [];
+    const tileW = Math.ceil(width / tiles);
+    const tileH = Math.ceil(height / tiles);
+
+    for (let ty = 0; ty < tiles; ty++) {
+      for (let tx = 0; tx < tiles; tx++) {
+        let sum = 0;
+        let sumSq = 0;
+        let n = 0;
+        for (let y = ty * tileH; y < Math.min((ty + 1) * tileH, height); y++) {
+          for (let x = tx * tileW; x < Math.min((tx + 1) * tileW, width); x++) {
+            const v = data[y * width + x];
+            sum += v;
+            sumSq += v * v;
+            n++;
+          }
+        }
+        if (n) variances.push(sumSq / n - (sum / n) ** 2);
+      }
+    }
+    variances.sort((a, b) => a - b);
+    const flattest = variances.slice(0, Math.max(1, Math.round(variances.length / 4)));
+    return flattest.reduce((a, b) => a + b, 0) / flattest.length;
+  }
+
+  /**
+   * Before/after ratios that need no ground truth.
+   *
+   * Returns edge energy and background variance for both images plus their
+   * ratios, so an uploaded image can still be judged on whether the halo was
+   * suppressed -- which is not the same claim as fidelity to a clean target.
+   */
+  function noReferenceReport(before, after, width, height) {
+    const beforeEdge = edgeEnergy(before, width, height);
+    const afterEdge = edgeEnergy(after, width, height);
+    const beforeBackground = backgroundVariance(before, width, height);
+    const afterBackground = backgroundVariance(after, width, height);
+    return {
+      edgeEnergy: { before: beforeEdge, after: afterEdge, ratio: beforeEdge ? afterEdge / beforeEdge : NaN },
+      backgroundVariance: {
+        before: beforeBackground,
+        after: afterBackground,
+        ratio: beforeBackground ? afterBackground / beforeBackground : NaN,
+      },
+    };
+  }
+
   return {
     gaussianKernel,
     gaussianBlur,
@@ -336,5 +417,8 @@
     runCvPipeline,
     psnr,
     ssim,
+    edgeEnergy,
+    backgroundVariance,
+    noReferenceReport,
   };
 });
