@@ -5,129 +5,727 @@
     "alpha": 0.6,
     "clipLimit": 2.0,
     "tilesX": 8,
-    "tilesY": 8
+    "tilesY": 8,
+    "bits": 16
   },
   "has_model_outputs": true,
+  "residual_scale": 0.87,
+  "held_out": {
+    "frames": 20,
+    "of": 100,
+    "val_split": 0.2,
+    "seed": 42,
+    "paths": {
+      "raw": {
+        "psnr": {
+          "mean": 11.4575,
+          "min": 9.01,
+          "min_id": "img_0081"
+        },
+        "ssim": {
+          "mean": 0.1816,
+          "min": 0.1036,
+          "min_id": "img_0056"
+        },
+        "dice": {
+          "mean": 0.8942,
+          "min": 0.5558,
+          "min_id": "img_0059"
+        }
+      },
+      "cv_only_uint16": {
+        "psnr": {
+          "mean": 7.3951,
+          "min": 6.656,
+          "min_id": "img_0056"
+        },
+        "ssim": {
+          "mean": 0.0905,
+          "min": 0.0485,
+          "min_id": "img_0056"
+        },
+        "dice": {
+          "mean": 0.4798,
+          "min": 0.2919,
+          "min_id": "img_0056"
+        }
+      },
+      "cv_only_uint8": {
+        "psnr": {
+          "mean": 10.9936,
+          "min": 9.146,
+          "min_id": "img_0061"
+        },
+        "ssim": {
+          "mean": 0.1417,
+          "min": 0.0776,
+          "min_id": "img_0056"
+        },
+        "dice": {
+          "mean": 0.8754,
+          "min": 0.4144,
+          "min_id": "img_0061"
+        }
+      },
+      "hybrid": {
+        "psnr": {
+          "mean": 20.2629,
+          "min": 15.214,
+          "min_id": "img_0081"
+        },
+        "ssim": {
+          "mean": 0.2771,
+          "min": 0.167,
+          "min_id": "img_0061"
+        },
+        "dice": {
+          "mean": 0.9075,
+          "min": 0.8083,
+          "min_id": "img_0081"
+        }
+      }
+    }
+  },
   "samples": [
-    {
-      "id": "img_0000",
-      "noisy": "img_0000_noisy.png",
-      "truth": "img_0000_truth.png",
-      "metrics": {
-        "raw": {
-          "psnr": 14.669,
-          "ssim": 0.1421
-        },
-        "cv_only": {
-          "psnr": 6.68,
-          "ssim": 0.0649
-        },
-        "hybrid": {
-          "psnr": 22.831,
-          "ssim": 0.2227
-        }
-      },
-      "hybrid": "img_0000_hybrid.png"
-    },
-    {
-      "id": "img_0001",
-      "noisy": "img_0001_noisy.png",
-      "truth": "img_0001_truth.png",
-      "metrics": {
-        "raw": {
-          "psnr": 11.421,
-          "ssim": 0.1546
-        },
-        "cv_only": {
-          "psnr": 7.209,
-          "ssim": 0.0778
-        },
-        "hybrid": {
-          "psnr": 22.308,
-          "ssim": 0.2436
-        }
-      },
-      "hybrid": "img_0001_hybrid.png"
-    },
     {
       "id": "img_0002",
       "noisy": "img_0002_noisy.png",
       "truth": "img_0002_truth.png",
+      "thumb": "img_0002_thumb.png",
+      "hybrid": "img_0002_hybrid.png",
+      "residual": "img_0002_residual.png",
       "metrics": {
         "raw": {
           "psnr": 12.249,
-          "ssim": 0.2879
+          "ssim": 0.2879,
+          "dice": 0.8941
         },
         "cv_only": {
-          "psnr": 8.404,
-          "ssim": 0.1493
+          "uint16": {
+            "psnr": 8.404,
+            "ssim": 0.1492,
+            "dice": 0.6644
+          },
+          "uint8": {
+            "psnr": 10.909,
+            "ssim": 0.2194,
+            "dice": 0.9143
+          }
         },
         "hybrid": {
-          "psnr": 19.242,
-          "ssim": 0.3503
+          "psnr": 19.244,
+          "ssim": 0.3502,
+          "dice": 0.9055
         }
-      },
-      "hybrid": "img_0002_hybrid.png"
-    },
-    {
-      "id": "img_0003",
-      "noisy": "img_0003_noisy.png",
-      "truth": "img_0003_truth.png",
-      "metrics": {
-        "raw": {
-          "psnr": 15.108,
-          "ssim": 0.2794
-        },
-        "cv_only": {
-          "psnr": 8.424,
-          "ssim": 0.134
-        },
-        "hybrid": {
-          "psnr": 19.398,
-          "ssim": 0.47
-        }
-      },
-      "hybrid": "img_0003_hybrid.png"
+      }
     },
     {
       "id": "img_0004",
       "noisy": "img_0004_noisy.png",
       "truth": "img_0004_truth.png",
+      "thumb": "img_0004_thumb.png",
+      "hybrid": "img_0004_hybrid.png",
+      "residual": "img_0004_residual.png",
       "metrics": {
         "raw": {
           "psnr": 10.641,
-          "ssim": 0.2384
+          "ssim": 0.2384,
+          "dice": 0.7268
         },
         "cv_only": {
-          "psnr": 8.049,
-          "ssim": 0.1314
+          "uint16": {
+            "psnr": 8.05,
+            "ssim": 0.1314,
+            "dice": 0.6365
+          },
+          "uint8": {
+            "psnr": 10.306,
+            "ssim": 0.2016,
+            "dice": 0.7967
+          }
         },
         "hybrid": {
-          "psnr": 18.259,
-          "ssim": 0.2871
+          "psnr": 18.261,
+          "ssim": 0.2871,
+          "dice": 0.8672
         }
-      },
-      "hybrid": "img_0004_hybrid.png"
+      }
     },
     {
-      "id": "img_0005",
-      "noisy": "img_0005_noisy.png",
-      "truth": "img_0005_truth.png",
+      "id": "img_0018",
+      "noisy": "img_0018_noisy.png",
+      "truth": "img_0018_truth.png",
+      "thumb": "img_0018_thumb.png",
+      "hybrid": "img_0018_hybrid.png",
+      "residual": "img_0018_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 13.123,
-          "ssim": 0.135
+          "psnr": 10.689,
+          "ssim": 0.1881,
+          "dice": 0.9628
         },
         "cv_only": {
-          "psnr": 7.514,
-          "ssim": 0.0602
+          "uint16": {
+            "psnr": 7.376,
+            "ssim": 0.0954,
+            "dice": 0.4838
+          },
+          "uint8": {
+            "psnr": 10.556,
+            "ssim": 0.147,
+            "dice": 0.9523
+          }
         },
         "hybrid": {
-          "psnr": 21.687,
-          "ssim": 0.586
+          "psnr": 18.608,
+          "ssim": 0.265,
+          "dice": 0.8955
         }
-      },
-      "hybrid": "img_0005_hybrid.png"
+      }
+    },
+    {
+      "id": "img_0021",
+      "noisy": "img_0021_noisy.png",
+      "truth": "img_0021_truth.png",
+      "thumb": "img_0021_thumb.png",
+      "hybrid": "img_0021_hybrid.png",
+      "residual": "img_0021_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 11.127,
+          "ssim": 0.234,
+          "dice": 0.8241
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 8.155,
+            "ssim": 0.1252,
+            "dice": 0.6136
+          },
+          "uint8": {
+            "psnr": 11.078,
+            "ssim": 0.1776,
+            "dice": 0.8563
+          }
+        },
+        "hybrid": {
+          "psnr": 19.028,
+          "ssim": 0.4051,
+          "dice": 0.8985
+        }
+      }
+    },
+    {
+      "id": "img_0024",
+      "noisy": "img_0024_noisy.png",
+      "truth": "img_0024_truth.png",
+      "thumb": "img_0024_thumb.png",
+      "hybrid": "img_0024_hybrid.png",
+      "residual": "img_0024_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 10.676,
+          "ssim": 0.1973,
+          "dice": 0.7892
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.566,
+            "ssim": 0.0956,
+            "dice": 0.5245
+          },
+          "uint8": {
+            "psnr": 10.328,
+            "ssim": 0.1454,
+            "dice": 0.8532
+          }
+        },
+        "hybrid": {
+          "psnr": 20.53,
+          "ssim": 0.2963,
+          "dice": 0.9213
+        }
+      }
+    },
+    {
+      "id": "img_0025",
+      "noisy": "img_0025_noisy.png",
+      "truth": "img_0025_truth.png",
+      "thumb": "img_0025_thumb.png",
+      "hybrid": "img_0025_hybrid.png",
+      "residual": "img_0025_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 9.308,
+          "ssim": 0.187,
+          "dice": 0.9444
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.483,
+            "ssim": 0.1014,
+            "dice": 0.5155
+          },
+          "uint8": {
+            "psnr": 10.39,
+            "ssim": 0.1475,
+            "dice": 0.8775
+          }
+        },
+        "hybrid": {
+          "psnr": 20.048,
+          "ssim": 0.2796,
+          "dice": 0.9215
+        }
+      }
+    },
+    {
+      "id": "img_0027",
+      "noisy": "img_0027_noisy.png",
+      "truth": "img_0027_truth.png",
+      "thumb": "img_0027_thumb.png",
+      "hybrid": "img_0027_hybrid.png",
+      "residual": "img_0027_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 12.223,
+          "ssim": 0.1409,
+          "dice": 0.9612
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 6.819,
+            "ssim": 0.0706,
+            "dice": 0.371
+          },
+          "uint8": {
+            "psnr": 11.156,
+            "ssim": 0.1028,
+            "dice": 0.9512
+          }
+        },
+        "hybrid": {
+          "psnr": 22.721,
+          "ssim": 0.221,
+          "dice": 0.9432
+        }
+      }
+    },
+    {
+      "id": "img_0033",
+      "noisy": "img_0033_noisy.png",
+      "truth": "img_0033_truth.png",
+      "thumb": "img_0033_thumb.png",
+      "hybrid": "img_0033_hybrid.png",
+      "residual": "img_0033_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 13.175,
+          "ssim": 0.1398,
+          "dice": 0.9841
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 6.89,
+            "ssim": 0.0638,
+            "dice": 0.38
+          },
+          "uint8": {
+            "psnr": 12.408,
+            "ssim": 0.1068,
+            "dice": 0.9701
+          }
+        },
+        "hybrid": {
+          "psnr": 22.81,
+          "ssim": 0.261,
+          "dice": 0.9445
+        }
+      }
+    },
+    {
+      "id": "img_0042",
+      "noisy": "img_0042_noisy.png",
+      "truth": "img_0042_truth.png",
+      "thumb": "img_0042_thumb.png",
+      "hybrid": "img_0042_hybrid.png",
+      "residual": "img_0042_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 14.243,
+          "ssim": 0.2266,
+          "dice": 0.9757
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.729,
+            "ssim": 0.0984,
+            "dice": 0.5304
+          },
+          "uint8": {
+            "psnr": 12.652,
+            "ssim": 0.162,
+            "dice": 0.962
+          }
+        },
+        "hybrid": {
+          "psnr": 21.108,
+          "ssim": 0.3522,
+          "dice": 0.943
+        }
+      }
+    },
+    {
+      "id": "img_0050",
+      "noisy": "img_0050_noisy.png",
+      "truth": "img_0050_truth.png",
+      "thumb": "img_0050_thumb.png",
+      "hybrid": "img_0050_hybrid.png",
+      "residual": "img_0050_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 11.832,
+          "ssim": 0.1679,
+          "dice": 0.896
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.397,
+            "ssim": 0.0814,
+            "dice": 0.4716
+          },
+          "uint8": {
+            "psnr": 10.719,
+            "ssim": 0.1335,
+            "dice": 0.8973
+          }
+        },
+        "hybrid": {
+          "psnr": 20.494,
+          "ssim": 0.2946,
+          "dice": 0.9225
+        }
+      }
+    },
+    {
+      "id": "img_0051",
+      "noisy": "img_0051_noisy.png",
+      "truth": "img_0051_truth.png",
+      "thumb": "img_0051_thumb.png",
+      "hybrid": "img_0051_hybrid.png",
+      "residual": "img_0051_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 12.715,
+          "ssim": 0.276,
+          "dice": 0.9766
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 8.027,
+            "ssim": 0.1395,
+            "dice": 0.6019
+          },
+          "uint8": {
+            "psnr": 12.484,
+            "ssim": 0.2084,
+            "dice": 0.9596
+          }
+        },
+        "hybrid": {
+          "psnr": 17.349,
+          "ssim": 0.325,
+          "dice": 0.8562
+        }
+      }
+    },
+    {
+      "id": "img_0052",
+      "noisy": "img_0052_noisy.png",
+      "truth": "img_0052_truth.png",
+      "thumb": "img_0052_thumb.png",
+      "hybrid": "img_0052_hybrid.png",
+      "residual": "img_0052_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 12.843,
+          "ssim": 0.1444,
+          "dice": 0.9901
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 6.869,
+            "ssim": 0.0567,
+            "dice": 0.3873
+          },
+          "uint8": {
+            "psnr": 14.754,
+            "ssim": 0.1162,
+            "dice": 0.9843
+          }
+        },
+        "hybrid": {
+          "psnr": 22.22,
+          "ssim": 0.2778,
+          "dice": 0.968
+        }
+      }
+    },
+    {
+      "id": "img_0056",
+      "noisy": "img_0056_noisy.png",
+      "truth": "img_0056_truth.png",
+      "thumb": "img_0056_thumb.png",
+      "hybrid": "img_0056_hybrid.png",
+      "residual": "img_0056_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 10.888,
+          "ssim": 0.1036,
+          "dice": 0.9651
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 6.656,
+            "ssim": 0.0485,
+            "dice": 0.2919
+          },
+          "uint8": {
+            "psnr": 11.165,
+            "ssim": 0.0776,
+            "dice": 0.9467
+          }
+        },
+        "hybrid": {
+          "psnr": 20.85,
+          "ssim": 0.1955,
+          "dice": 0.8885
+        }
+      }
+    },
+    {
+      "id": "img_0059",
+      "noisy": "img_0059_noisy.png",
+      "truth": "img_0059_truth.png",
+      "thumb": "img_0059_thumb.png",
+      "hybrid": "img_0059_hybrid.png",
+      "residual": "img_0059_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 11.021,
+          "ssim": 0.1385,
+          "dice": 0.5558
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.131,
+            "ssim": 0.0766,
+            "dice": 0.497
+          },
+          "uint8": {
+            "psnr": 10.053,
+            "ssim": 0.1171,
+            "dice": 0.6894
+          }
+        },
+        "hybrid": {
+          "psnr": 21.482,
+          "ssim": 0.2026,
+          "dice": 0.9006
+        }
+      }
+    },
+    {
+      "id": "img_0061",
+      "noisy": "img_0061_noisy.png",
+      "truth": "img_0061_truth.png",
+      "thumb": "img_0061_thumb.png",
+      "hybrid": "img_0061_hybrid.png",
+      "residual": "img_0061_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 11.291,
+          "ssim": 0.1172,
+          "dice": 0.9518
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 6.71,
+            "ssim": 0.0616,
+            "dice": 0.3303
+          },
+          "uint8": {
+            "psnr": 9.146,
+            "ssim": 0.0862,
+            "dice": 0.4144
+          }
+        },
+        "hybrid": {
+          "psnr": 23.335,
+          "ssim": 0.167,
+          "dice": 0.9394
+        }
+      }
+    },
+    {
+      "id": "img_0071",
+      "noisy": "img_0071_noisy.png",
+      "truth": "img_0071_truth.png",
+      "thumb": "img_0071_thumb.png",
+      "hybrid": "img_0071_hybrid.png",
+      "residual": "img_0071_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 10.975,
+          "ssim": 0.164,
+          "dice": 0.9163
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.408,
+            "ssim": 0.0761,
+            "dice": 0.4503
+          },
+          "uint8": {
+            "psnr": 10.185,
+            "ssim": 0.1252,
+            "dice": 0.9155
+          }
+        },
+        "hybrid": {
+          "psnr": 20.369,
+          "ssim": 0.3115,
+          "dice": 0.9162
+        }
+      }
+    },
+    {
+      "id": "img_0081",
+      "noisy": "img_0081_noisy.png",
+      "truth": "img_0081_truth.png",
+      "thumb": "img_0081_thumb.png",
+      "hybrid": "img_0081_hybrid.png",
+      "residual": "img_0081_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 9.01,
+          "ssim": 0.1782,
+          "dice": 0.8631
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.125,
+            "ssim": 0.0877,
+            "dice": 0.4507
+          },
+          "uint8": {
+            "psnr": 9.204,
+            "ssim": 0.1496,
+            "dice": 0.8141
+          }
+        },
+        "hybrid": {
+          "psnr": 15.214,
+          "ssim": 0.179,
+          "dice": 0.8083
+        }
+      }
+    },
+    {
+      "id": "img_0092",
+      "noisy": "img_0092_noisy.png",
+      "truth": "img_0092_truth.png",
+      "thumb": "img_0092_thumb.png",
+      "hybrid": "img_0092_hybrid.png",
+      "residual": "img_0092_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 11.699,
+          "ssim": 0.1488,
+          "dice": 0.8403
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.375,
+            "ssim": 0.0758,
+            "dice": 0.4715
+          },
+          "uint8": {
+            "psnr": 10.048,
+            "ssim": 0.1176,
+            "dice": 0.8805
+          }
+        },
+        "hybrid": {
+          "psnr": 21.572,
+          "ssim": 0.3208,
+          "dice": 0.9233
+        }
+      }
+    },
+    {
+      "id": "img_0097",
+      "noisy": "img_0097_noisy.png",
+      "truth": "img_0097_truth.png",
+      "thumb": "img_0097_thumb.png",
+      "hybrid": "img_0097_hybrid.png",
+      "residual": "img_0097_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 9.74,
+          "ssim": 0.1857,
+          "dice": 0.8983
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.443,
+            "ssim": 0.1012,
+            "dice": 0.4983
+          },
+          "uint8": {
+            "psnr": 10.114,
+            "ssim": 0.1564,
+            "dice": 0.9042
+          }
+        },
+        "hybrid": {
+          "psnr": 18.544,
+          "ssim": 0.2596,
+          "dice": 0.8621
+        }
+      }
+    },
+    {
+      "id": "img_0099",
+      "noisy": "img_0099_noisy.png",
+      "truth": "img_0099_truth.png",
+      "thumb": "img_0099_thumb.png",
+      "hybrid": "img_0099_hybrid.png",
+      "residual": "img_0099_residual.png",
+      "metrics": {
+        "raw": {
+          "psnr": 12.805,
+          "ssim": 0.1672,
+          "dice": 0.9674
+        },
+        "cv_only": {
+          "uint16": {
+            "psnr": 7.29,
+            "ssim": 0.0732,
+            "dice": 0.4249
+          },
+          "uint8": {
+            "psnr": 12.216,
+            "ssim": 0.1362,
+            "dice": 0.9679
+          }
+        },
+        "hybrid": {
+          "psnr": 21.471,
+          "ssim": 0.2915,
+          "dice": 0.9244
+        }
+      }
     }
   ]
 }

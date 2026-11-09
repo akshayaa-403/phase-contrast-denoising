@@ -19,6 +19,7 @@ class Preprocessor:
         dog_alpha: float = 0.5,
         clahe_clip_limit: float = 2.0,
         clahe_grid_size: Tuple[int, int] = (8, 8),
+        clahe_dtype: str = "uint16",
     ) -> None:
         if dog_sigma2 <= dog_sigma1:
             raise ValueError(
@@ -31,6 +32,13 @@ class Preprocessor:
         self.dog_alpha = float(dog_alpha)
         self.clahe_clip_limit = float(clahe_clip_limit)
         self.clahe_grid_size = (int(clahe_grid_size[0]), int(clahe_grid_size[1]))
+        # Opt-in only. "uint16" is the shipped behaviour and what the U-Net was
+        # trained on. With 65536 histogram bins OpenCV's per-bin clip ceiling is
+        # max(int(clip * tileArea / 65536), 1), which is 1 for small tiles, so
+        # the clip limit does nothing there; "uint8" (256 bins) makes it bite.
+        if clahe_dtype not in ("uint16", "uint8"):
+            raise ValueError(f"clahe_dtype must be 'uint16' or 'uint8', got {clahe_dtype!r}.")
+        self.clahe_dtype = clahe_dtype
 
     @staticmethod
     def _to_float32(image: np.ndarray) -> np.ndarray:
@@ -82,12 +90,16 @@ class Preprocessor:
             return img.copy()
 
         # CLAHE requires an integer image; uint16 keeps more precision than uint8.
-        img_u16 = ((img - lo) / rng * 65535.0).astype(np.uint16)
+        if self.clahe_dtype == "uint8":
+            dtype, top = np.uint8, 255.0
+        else:
+            dtype, top = np.uint16, 65535.0
+        img_int = ((img - lo) / rng * top).astype(dtype)
 
         clahe = cv2.createCLAHE(clipLimit=clip, tileGridSize=grid)
-        eq_u16 = clahe.apply(img_u16)
+        eq_int = clahe.apply(img_int)
 
-        eq = eq_u16.astype(np.float32) / 65535.0 * rng + lo
+        eq = eq_int.astype(np.float32) / top * rng + lo
         return eq
 
     @staticmethod

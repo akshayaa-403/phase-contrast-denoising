@@ -1,185 +1,318 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en-GB" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phase-Contrast Clean-Up — interactive halo suppression</title>
-<meta name="description" content="Suppress the halo artifact in phase-contrast microscopy live in the browser: drag the Difference-of-Gaussians and CLAHE parameters and watch the image and the metrics respond.">
+<title>Phase-Contrast Clean-Up · halo suppression workbench</title>
+<meta name="description" content="Remove the bright halo that phase-contrast microscopy puts around every cell, live in the browser, and compare the classical result with a residual U-Net on frames it never trained on.">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Libre+Caslon+Text&display=swap">
 <link rel="stylesheet" href="styles.css">
+<script src="theme.js"></script>
 </head>
 <body>
 
-<a class="skip-link" href="#results">Skip to results</a>
+<a class="skip-link" href="#viewer">Skip to the image</a>
+<a class="skip-link" href="#controls">Skip to the controls</a>
 
-<header class="site-header">
-  <div class="wrap header-row">
-    <div class="header-text">
+<div class="first-screen">
+  <header class="site-header">
+    <div class="header-row">
       <h1>Phase-Contrast Clean-Up</h1>
-      <p class="tagline">
-        Phase-contrast microscopy wraps every cell in a bright halo that confuses
-        downstream segmentation. Drag the parameters below and this page re-runs the
-        project's suppression pipeline — Difference-of-Gaussians then CLAHE — on the
-        image in front of you, in your browser, updating the picture and the numbers
-        as you go.
-      </p>
+      <p class="purpose">Phase-contrast microscopes ring every cell with a bright halo; tune the classical filter that removes it, live, and compare it with a trained U-Net.</p>
+      <div class="header-actions">
+        <button type="button" class="icon-button" id="themeToggle" aria-label="Switch to light theme">
+          <span class="theme-icon" aria-hidden="true">☀</span>
+        </button>
+        <a class="text-link" href="https://github.com/akshayaa-403/phase-contrast-denoising">Source ↗</a>
+      </div>
     </div>
-    <div class="header-actions">
-      <button type="button" class="icon-button" id="themeToggle" aria-label="Switch to light theme">
-        <span class="theme-icon" aria-hidden="true">☀</span>
-      </button>
-      <a class="text-link" href="https://github.com/akshayaa-403/phase-contrast-denoising">Source ↗</a>
-    </div>
-  </div>
-</header>
+    <p class="headline" id="headline" hidden></p>
+  </header>
 
-<main class="wrap">
-
-  <section id="noSamples" class="panel notice" hidden>
+  <section id="noSamples" class="notice" hidden>
     <h2>No sample images published yet</h2>
     <p>This page reads <code>docs/samples/manifest.json</code>. Generate it with:</p>
     <pre><code>python data/generate_synthetic.py --num 100 --size 256
-python scripts/make_demo_assets.py --count 6</code></pre>
+python scripts/make_demo_assets.py</code></pre>
     <p>Then commit <code>docs/samples/</code>, or preview locally with <code>python -m http.server -d docs 8000</code>.</p>
   </section>
 
-  <div id="app" hidden>
-
-    <!-- ── Results: the point of the page ───────────────────────────────── -->
-    <section id="results" class="results" aria-labelledby="resultsHeading">
-      <div class="results-head">
-        <h2 id="resultsHeading">Result</h2>
-        <p class="source-line" id="sourceLabel"></p>
+  <main id="app" class="workbench" hidden>
+    <!-- ── Viewer ─────────────────────────────────────────────────────── -->
+    <section class="viewer-col" aria-label="Image viewer">
+      <div class="stage-bar">
+        <div class="picker picker-left">
+          <label for="leftStage" class="visually-hidden">Left side shows</label>
+          <select id="leftStage" class="stage-select"></select>
+        </div>
+        <p class="image-source" id="imageSource"></p>
+        <div class="picker picker-right">
+          <label for="rightStage" class="visually-hidden">Right side shows</label>
+          <select id="rightStage" class="stage-select"></select>
+        </div>
       </div>
 
-      <div class="stage-grid" id="stageGrid">
-        <figure class="stage">
-          <canvas id="canvasInput" role="img" aria-label="The input phase-contrast image, halo visible"></canvas>
-          <figcaption><strong>Input</strong><span class="sub">halo visible</span></figcaption>
-        </figure>
-        <figure class="stage">
-          <canvas id="canvasDog" role="img" aria-label="After Difference-of-Gaussians halo suppression"></canvas>
-          <figcaption><strong>After DoG</strong><span class="sub">halo suppressed</span></figcaption>
-        </figure>
-        <figure class="stage is-primary">
-          <canvas id="canvasCv" role="img" aria-label="The classical pipeline output, computed live in your browser"></canvas>
-          <figcaption><strong>+ CLAHE</strong><span class="sub">live output</span></figcaption>
-        </figure>
-        <figure class="stage" id="hybridStage">
-          <canvas id="canvasHybrid" role="img" aria-label="The residual U-Net output, precomputed"></canvas>
-          <figcaption><strong>Hybrid U-Net</strong><span class="sub">precomputed</span></figcaption>
-        </figure>
-        <figure class="stage" id="truthStage">
-          <canvas id="canvasTruth" role="img" aria-label="The clean ground-truth target"></canvas>
-          <figcaption><strong>Ground truth</strong><span class="sub">clean target</span></figcaption>
-        </figure>
+      <div class="viewer" id="viewer" tabindex="0" role="group"
+           aria-roledescription="image viewer" aria-describedby="viewerHelp">
+        <canvas id="viewCanvas" role="img" aria-label=""></canvas>
+        <div class="grid-tags" id="gridTags" aria-hidden="true"></div>
+        <div class="divider" id="divider" role="slider" tabindex="0"
+             aria-label="Split position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+          <span class="divider-grip" aria-hidden="true"></span>
+        </div>
+        <div class="scanline-handle" id="scanHandle" role="slider" tabindex="0" hidden
+             aria-label="Line-profile row" aria-orientation="vertical"
+             aria-valuemin="0" aria-valuemax="255" aria-valuenow="128">
+          <span aria-hidden="true">⇕</span>
+        </div>
+        <div class="viewer-note" id="viewerNote" hidden></div>
+        <div class="viewer-progress" id="viewerProgress" hidden>
+          <progress id="progressBar" max="1" value="0"></progress>
+          <span id="progressLabel">Computing…</span>
+        </div>
+        <div class="large-dialog" id="largeDialog" role="group" aria-labelledby="largeTitle" hidden>
+          <p id="largeTitle"></p>
+          <div class="button-row">
+            <button type="button" class="button" id="largeDownscale"></button>
+            <button type="button" class="button ghost" id="largeCrop"></button>
+            <button type="button" class="button ghost" id="largeCancel">Cancel</button>
+          </div>
+        </div>
+        <div class="drop-hint" id="dropHint" hidden><span>Drop to open this image</span></div>
       </div>
-
-      <p class="disclosure">
-        The three left panels are computed here, live, as you drag. The
-        <strong>U-Net column is precomputed</strong> — 31M parameters is a ~124&nbsp;MB
-        download and far too slow for WebAssembly, so it is rendered ahead of time and
-        served as an image.
+      <p class="visually-hidden" id="viewerHelp">
+        Plus and minus zoom, 0 fits the image, 1 shows it at actual size, the arrow keys pan,
+        and holding backslash shows the input. A read-out of the pixel under the centre
+        crosshair follows the image.
       </p>
+
+      <div class="toolbar" role="toolbar" aria-label="Viewer">
+        <div class="tool-group" role="group" aria-label="Zoom">
+          <button type="button" class="tool" id="zoomOut" aria-label="Zoom out">−</button>
+          <button type="button" class="tool" id="zoomActual" aria-label="Actual size, one image pixel per screen pixel">1:1</button>
+          <button type="button" class="tool" id="zoomIn" aria-label="Zoom in">+</button>
+          <button type="button" class="tool" id="zoomFit">fit</button>
+          <span class="zoom-level" id="zoomLevel" aria-live="off"></span>
+        </div>
+        <div class="tool-group" role="group" aria-label="Layout">
+          <button type="button" class="tool" id="modeSplit" aria-pressed="true">split</button>
+          <button type="button" class="tool" id="modeGrid" aria-pressed="false">grid</button>
+        </div>
+        <button type="button" class="tool hold" id="holdInput" aria-describedby="holdHint">hold for input</button>
+        <span class="visually-hidden" id="holdHint">Shows the input across the whole frame while pressed</span>
+        <p class="readout" id="readout" aria-live="off"></p>
+      </div>
+
+      <figure class="profile" id="profile" hidden>
+        <svg id="profileSvg" role="img" aria-labelledby="profileCaption" preserveAspectRatio="none"></svg>
+        <figcaption id="profileCaption" class="profile-caption"></figcaption>
+      </figure>
     </section>
 
-    <!-- ── Metrics ──────────────────────────────────────────────────────── -->
-    <section class="panel" aria-labelledby="metricsHeading">
-      <h2 id="metricsHeading" class="panel-title">Measured</h2>
-      <table class="metrics" id="metricsTable">
-        <caption class="visually-hidden">Image quality per pipeline stage, against the clean target</caption>
+    <!-- ── Sidebar ────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="controls" aria-label="Controls and measurements" tabindex="-1">
+      <div class="tabs" role="tablist" aria-label="Sections" id="tabList" hidden>
+        <button type="button" role="tab" id="tab-image" aria-controls="panel-image">Image</button>
+        <button type="button" role="tab" id="tab-tune" aria-controls="panel-tune">Tune</button>
+        <button type="button" role="tab" id="tab-measure" aria-controls="panel-measure">Measure</button>
+        <button type="button" role="tab" id="tab-export" aria-controls="panel-export">Export</button>
+      </div>
+
+      <div class="panel" id="panel-image" aria-labelledby="tab-image">
+        <section class="block" aria-labelledby="imageHeading">
+          <div class="block-head">
+            <h2 id="imageHeading">Image</h2>
+            <label class="inline-select">Sort
+              <select id="sampleSort">
+                <option value="name">by frame</option>
+                <option value="dice">lowest raw Dice first</option>
+              </select>
+            </label>
+          </div>
+          <p class="lede">Frames the U-Net never trained on, with Otsu Dice raw → U-Net under each.</p>
+          <div class="sample-strip" id="sampleGrid" role="group" aria-label="Held-out samples; arrow keys move between them"></div>
+          <div class="upload-row">
+            <label class="button ghost" for="fileInput">Open your image…</label>
+            <input type="file" id="fileInput" class="visually-hidden"
+                   accept="image/png,image/tiff,image/jpeg,image/webp,image/bmp,image/gif,.tif,.tiff">
+            <span class="hint">or drop or paste it onto the viewer. PNG, TIFF (8 or 16-bit), JPEG, WebP. It never leaves this tab.</span>
+          </div>
+          <p class="hint error" id="uploadError" role="alert" hidden></p>
+        </section>
+      </div>
+
+      <div class="panel" id="panel-tune" aria-labelledby="tab-tune">
+        <section class="block" aria-labelledby="dogHeading">
+          <h2 id="dogHeading">1 · Halo suppression (DoG)</h2>
+          <p class="lede">Blur at two scales and subtract part of the difference, flattening the bright ring around each cell. σ is a blur radius in pixels.</p>
+          <div class="controls" id="dogControls"></div>
+        </section>
+
+        <section class="block" aria-labelledby="claheHeading">
+          <h2 id="claheHeading">2 · Local contrast (CLAHE)</h2>
+          <p class="lede">Stretch contrast tile by tile, capping how far any grey level can be boosted so background noise is not amplified.</p>
+          <fieldset class="precision">
+            <legend>Precision</legend>
+            <label><input type="radio" name="bits" value="16"> 16-bit <span class="muted">(as shipped)</span></label>
+            <label><input type="radio" name="bits" value="8"> 8-bit <span class="muted">(fixed)</span></label>
+          </fieldset>
+          <div class="controls" id="claheControls"></div>
+        </section>
+
+        <div class="button-row">
+          <button type="button" class="button ghost" id="pinBtn">Pin this result</button>
+          <button type="button" class="button ghost" id="resetAll">Reset all to config defaults</button>
+        </div>
+        <ul class="pins" id="pinList" aria-label="Pinned results"></ul>
+        <p class="hint" id="timing"></p>
+      </div>
+
+      <div class="panel" id="panel-measure" aria-labelledby="tab-measure">
+        <section class="block" aria-labelledby="overlayHeading">
+          <h2 id="overlayHeading">Overlays</h2>
+          <div class="toggles">
+            <label class="toggle"><input type="checkbox" id="ovMask">
+              <span class="swatch swatch-solid" aria-hidden="true"></span>Otsu mask of the right-hand image <span class="muted">(solid)</span></label>
+            <label class="toggle"><input type="checkbox" id="ovTruth">
+              <span class="swatch swatch-dashed" aria-hidden="true"></span>Ground-truth mask <span class="muted">(dashed)</span></label>
+            <label class="toggle"><input type="checkbox" id="ovProfile">
+              <span class="swatch swatch-line" aria-hidden="true"></span>Line profile along one row</label>
+            <label class="inline-select">Colour map
+              <select id="lutSelect">
+                <option value="grey">greyscale</option>
+                <option value="viridis">viridis (false colour)</option>
+              </select>
+            </label>
+          </div>
+          <p class="hint">Display only: the colour map never changes a measurement.</p>
+        </section>
+
+        <section class="block" aria-labelledby="measureHeading">
+          <div class="block-head">
+            <h2 id="measureHeading">Measured</h2>
+            <span class="hint" id="measureSource"></span>
+          </div>
+          <div id="measureRef">
+            <table class="measure" id="measureTable">
+              <caption class="visually-hidden">Quality of each stage against the ground truth, and its change from the input</caption>
+              <thead>
+                <tr><th scope="col">Stage</th><th scope="col">PSNR</th><th scope="col">SSIM</th><th scope="col">Otsu Dice</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <p class="python-ref" id="pythonRef"></p>
+          </div>
+          <div id="measureNoRef" hidden>
+            <table class="measure" id="noRefTable">
+              <caption class="visually-hidden">No-reference measures before and after the classical path</caption>
+              <thead>
+                <tr><th scope="col">Measure</th><th scope="col">Input</th><th scope="col">Classical</th><th scope="col">Change</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="explainers">
+            <details id="explainPsnr">
+              <summary>Why Classical PSNR falls below Input.</summary>
+              <p>CLAHE rewrites the tone curve to lift local contrast. PSNR compares absolute intensities with the target, so a visibly clearer image can score lower. The U-Net was trained against the target, so it keeps that scale.</p>
+            </details>
+            <details>
+              <summary>What Dice measures.</summary>
+              <p>One global Otsu threshold splits each image into cells and background. Dice is how well that cell mask overlaps the ground truth's: 1 is a perfect match, 0 is no overlap.</p>
+            </details>
+            <details id="explainNoRef">
+              <summary>Why your image gets no-reference measures.</summary>
+              <p>An upload has no clean twin, so PSNR, SSIM and Dice cannot be computed. Edge energy, background variance and foreground fraction need no target: they show whether the halo went, not fidelity.</p>
+            </details>
+          </div>
+        </section>
+      </div>
+
+      <div class="panel" id="panel-export" aria-labelledby="tab-export">
+        <section class="block" aria-labelledby="exportHeading">
+          <h2 id="exportHeading">Export</h2>
+          <div class="button-row">
+            <button type="button" class="button ghost" id="exportStage">Download right-hand image (PNG)</button>
+            <button type="button" class="button ghost" id="exportFigure">Download side-by-side figure (PNG)</button>
+          </div>
+          <div class="copy-block">
+            <div class="copy-head">
+              <h3>Config block</h3>
+              <button type="button" class="button ghost small" id="copyYaml">Copy YAML</button>
+            </div>
+            <pre id="yamlOut" tabindex="0" aria-label="YAML for configs/default_config.yaml"></pre>
+          </div>
+          <div class="copy-block">
+            <div class="copy-head">
+              <h3>Command</h3>
+              <button type="button" class="button ghost small" id="copyCmd">Copy command</button>
+            </div>
+            <pre id="cmdOut" tabindex="0" aria-label="Command line"></pre>
+          </div>
+          <p class="hint warn" id="exportNote" hidden></p>
+          <div class="button-row">
+            <button type="button" class="button ghost" id="copyLink">Copy link to this view</button>
+          </div>
+          <p class="hint">The link stores the sample, parameters, precision, both stages, the split position and the overlays. Your own images are never put in a link.</p>
+        </section>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- ── Below the fold: the held-out evidence ───────────────────────── -->
+<section class="evidence" id="evidence" aria-labelledby="evidenceHeading" hidden>
+  <div class="evidence-inner">
+    <h2 id="evidenceHeading">All held-out frames</h2>
+    <p class="prose" id="evidenceLede"></p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Held-out summary table, scrolls sideways">
+      <table class="summary" id="summaryTable">
+        <caption class="visually-hidden">Mean and worst quality per path over the held-out frames, measured in Python</caption>
         <thead>
           <tr>
-            <th scope="col">Stage</th>
-            <th scope="col">PSNR (dB)</th>
-            <th scope="col">SSIM</th>
-            <th scope="col" class="ref">Python reference</th>
+            <th scope="col">Path</th>
+            <th scope="col">PSNR mean</th>
+            <th scope="col">PSNR worst</th>
+            <th scope="col">SSIM mean</th>
+            <th scope="col">Dice mean</th>
+            <th scope="col">Dice worst</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
-
-      <!-- Shown instead of the table for user uploads, which have no clean target -->
-      <table class="metrics" id="noRefTable" hidden>
-        <caption class="visually-hidden">No-reference measures, before and after the classical pipeline</caption>
-        <thead>
-          <tr>
-            <th scope="col">Measure</th>
-            <th scope="col">Before</th>
-            <th scope="col">After</th>
-            <th scope="col">Change</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <p class="hint" id="metricsNote"></p>
-      <p class="status" id="status" role="status" aria-live="polite"></p>
-    </section>
-
-    <!-- ── Controls ─────────────────────────────────────────────────────── -->
-    <section class="panel" aria-labelledby="controlsHeading">
-      <div class="panel-head">
-        <h2 id="controlsHeading" class="panel-title">Parameters</h2>
-        <div class="panel-actions">
-          <span class="value" id="timing"></span>
-          <button type="button" class="button ghost" id="resetBtn">Reset to config defaults</button>
-        </div>
-      </div>
-
-      <div class="sliders">
-        <div class="slider">
-          <label for="sigma1">σ₁ <span class="sub">cell body scale</span></label>
-          <input type="range" id="sigma1" min="0.2" max="6" step="0.1"
-                 aria-describedby="sigma1Out"><output id="sigma1Out" for="sigma1"></output>
-        </div>
-        <div class="slider">
-          <label for="sigma2">σ₂ <span class="sub">halo width</span></label>
-          <input type="range" id="sigma2" min="1" max="24" step="0.5"
-                 aria-describedby="sigma2Out"><output id="sigma2Out" for="sigma2"></output>
-        </div>
-        <div class="slider">
-          <label for="alpha">α <span class="sub">subtraction strength</span></label>
-          <input type="range" id="alpha" min="0" max="2" step="0.05"
-                 aria-describedby="alphaOut"><output id="alphaOut" for="alpha"></output>
-        </div>
-        <div class="slider">
-          <label for="clip">CLAHE clip <span class="sub">contrast ceiling</span></label>
-          <input type="range" id="clip" min="0.5" max="10" step="0.5"
-                 aria-describedby="clipOut"><output id="clipOut" for="clip"></output>
-        </div>
-        <div class="slider">
-          <label for="tiles">CLAHE tiles <span class="sub">grid per axis</span></label>
-          <input type="range" id="tiles" min="2" max="16" step="1"
-                 aria-describedby="tilesOut"><output id="tilesOut" for="tiles"></output>
-        </div>
-      </div>
-      <p class="hint warn" id="sigmaWarning" hidden>σ₂ must stay above σ₁ — the wide blur is what captures the halo.</p>
-    </section>
-
-    <!-- ── Image source ─────────────────────────────────────────────────── -->
-    <section class="panel" aria-labelledby="sourceHeading">
-      <h2 id="sourceHeading" class="panel-title">Image</h2>
-      <div class="sample-strip" id="sampleStrip" role="group" aria-label="Sample images"></div>
-      <div class="upload-row">
-        <label class="button" for="fileInput">Upload your own image…</label>
-        <input type="file" id="fileInput" accept="image/*" class="visually-hidden">
-        <span class="hint">Any grayscale micrograph. Nothing is uploaded anywhere — it is read in this tab.</span>
-      </div>
-    </section>
-
+    </div>
+    <div class="dotplots">
+      <figure class="dotplot">
+        <figcaption id="dotDiceCaption">Otsu Dice per frame, raw input (hollow) → U-Net (filled). Select a frame to open it.</figcaption>
+        <svg id="dotDice" aria-labelledby="dotDiceCaption"></svg>
+      </figure>
+      <figure class="dotplot">
+        <figcaption id="dotPsnrCaption">PSNR per frame (dB), raw input (hollow) → U-Net (filled).</figcaption>
+        <svg id="dotPsnr" aria-labelledby="dotPsnrCaption"></svg>
+      </figure>
+    </div>
     <p class="footnote">
-      <code>docs/cv.js</code> is a port of <code>src/preprocessor.py</code>, checked against
-      OpenCV by <code>scripts/verify_web_pipeline.py</code> (they agree to ~50&nbsp;dB PSNR).
-      Method notes, metric caveats and the training setup are in the
-      <a href="https://github.com/akshayaa-403/phase-contrast-denoising#readme">README</a>.
+      Every number on this page is either computed live in your browser or read from
+      <code>docs/samples/manifest.json</code>, which <code>scripts/make_demo_assets.py</code> writes.
+      <code>docs/cv.js</code> is a port of <code>src/preprocessor.py</code> that
+      <code>scripts/verify_web_pipeline.py</code> checks against OpenCV; at the config defaults the
+      two agree bit for bit, at both CLAHE precisions. The U-Net is precomputed: at 31M parameters
+      it is a ~124&nbsp;MB float32 download and far too slow for WebAssembly, so it runs offline
+      and the page shows its saved output. Method notes are in the
+      <a href="https://github.com/akshayaa-403/phase-contrast-denoising#browser-demo-github-pages">README</a>.
     </p>
   </div>
-</main>
+</section>
 
-<script src="theme.js"></script>
+<p class="visually-hidden" id="announcer" role="status" aria-live="polite"></p>
+
+<script src="params.js"></script>
+<script src="decode.js"></script>
 <script src="cv.js"></script>
-<script src="app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

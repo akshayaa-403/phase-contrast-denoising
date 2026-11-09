@@ -111,6 +111,24 @@ class PhaseContrastDataset(Dataset):
         return noisy_t, clean_t
 
 
+def split_pairs(
+    pairs: List[Tuple[str, str]],
+    val_split: float = 0.2,
+    seed: int = 42,
+) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+    """Split pairs into (train, val) with a seeded permutation.
+
+    The one place the held-out set is defined. ``build_dataloaders`` uses it for
+    training and ``scripts/make_demo_assets.py`` uses it to publish only frames
+    the model never trained on, so the two cannot drift apart.
+    """
+    rng = np.random.default_rng(seed)
+    idx = rng.permutation(len(pairs))
+    n_val = max(1, int(len(pairs) * val_split))
+    val_idx, train_idx = idx[:n_val], idx[n_val:]
+    return [pairs[i] for i in train_idx], [pairs[i] for i in val_idx]
+
+
 def build_dataloaders(
     data_dir: str,
     preprocessor: Preprocessor,
@@ -125,13 +143,7 @@ def build_dataloaders(
     clean_dir = os.path.join(data_dir, "ground_truth")
     pairs = _list_pairs(noisy_dir, clean_dir)
 
-    rng = np.random.default_rng(seed)
-    idx = rng.permutation(len(pairs))
-    n_val = max(1, int(len(pairs) * val_split))
-    val_idx, train_idx = idx[:n_val], idx[n_val:]
-
-    train_pairs = [pairs[i] for i in train_idx]
-    val_pairs = [pairs[i] for i in val_idx]
+    train_pairs, val_pairs = split_pairs(pairs, val_split, seed)
 
     train_ds = PhaseContrastDataset(train_pairs, preprocessor, patch_size, train=True)
     val_ds = PhaseContrastDataset(val_pairs, preprocessor, patch_size, train=False)

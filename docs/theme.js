@@ -4,7 +4,11 @@
  * Starts from the OS preference and only pins a choice once the user makes one,
  * so someone who has set "dark" system-wide is never shown a white page first.
  * The choice is stored under one key and applied to `data-theme` on <html>, which
- * the stylesheet reads.
+ * the stylesheet reads. Loaded in <head>, so the theme is set before first paint;
+ * the toggle button is wired once the document has loaded.
+ *
+ * The image viewer keeps its own dark surround in both themes (micrographs are
+ * read on dark), so only the page chrome changes here.
  */
 (() => {
   'use strict';
@@ -29,6 +33,7 @@
 
   function apply(theme) {
     root.dataset.theme = theme;
+    document.dispatchEvent(new CustomEvent('themechange', { detail: theme }));
     const button = document.getElementById('themeToggle');
     if (!button) return;
     const toDark = theme === 'light';
@@ -37,6 +42,9 @@
     button.setAttribute('title', button.getAttribute('aria-label'));
     button.querySelector('.theme-icon').textContent = toDark ? '☾' : '☀';
   }
+
+  // Before first paint, so a light-OS visitor never sees a dark flash.
+  root.dataset.theme = active();
 
   function init() {
     apply(active());
