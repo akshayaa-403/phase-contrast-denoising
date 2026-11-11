@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Phase-Contrast Clean-Up</title>
-<meta name="description" content="Remove the bright halo around cells in phase-contrast microscopy images, live in your browser.">
+<meta name="description" content="Remove the halo and uneven illumination from phase-contrast microscopy images, live in your browser.">
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
 <link rel="stylesheet" href="styles.css">
@@ -19,9 +19,10 @@
     <div class="header-text">
       <h1>Phase-Contrast Clean-Up</h1>
       <p class="tagline">
-        Phase-contrast microscopes draw a bright <strong>halo</strong> around every cell,
-        which makes cells hard to measure automatically. This page removes the halo.
-        Pick an image, compare before and after, and move the sliders to see the effect.
+        Phase-contrast microscopes draw a bright <strong>halo</strong> around every cell and
+        often light the field unevenly, which makes cells hard to measure automatically.
+        This page removes both. Pick an image, compare before and after, and move the sliders
+        to see the effect.
       </p>
     </div>
     <div class="header-actions">
@@ -38,7 +39,7 @@
   <section id="noSamples" class="panel notice" hidden>
     <h2>No sample images yet</h2>
     <p>Generate them, then reload:</p>
-    <pre><code>python data/generate_synthetic.py --num 100 --size 256
+    <pre><code>python data/generate_synthetic.py
 python scripts/make_demo_assets.py
 python -m http.server -d docs 8000</code></pre>
   </section>
@@ -66,7 +67,7 @@ python -m http.server -d docs 8000</code></pre>
       <div class="stage-grid">
         <figure class="stage">
           <canvas id="canvasInput" role="img" aria-label="Original image with halos"></canvas>
-          <figcaption><strong>Before</strong><span class="sub">original, with halos</span></figcaption>
+          <figcaption><strong>Before</strong><span class="sub">original, as recorded</span></figcaption>
         </figure>
         <figure class="stage is-primary">
           <canvas id="canvasCv" role="img" aria-label="Cleaned with the classical method, updates as you move the sliders"></canvas>
@@ -74,12 +75,16 @@ python -m http.server -d docs 8000</code></pre>
         </figure>
         <figure class="stage" id="hybridStage">
           <canvas id="canvasHybrid" role="img" aria-label="Cleaned with the classical method plus the neural network"></canvas>
-          <figcaption><strong>Cleaned: + neural network</strong><span class="sub">pre-computed</span></figcaption>
+          <figcaption><strong>Cleaned: + neural network</strong><span class="sub" id="hybridSub">pre-computed</span></figcaption>
         </figure>
         <figure class="stage" id="truthStage">
           <canvas id="canvasTruth" role="img" aria-label="The ideal halo-free image"></canvas>
           <figcaption><strong>Ideal</strong><span class="sub">what a perfect result looks like</span></figcaption>
         </figure>
+      </div>
+      <div class="nn-row" id="nnRow" hidden>
+        <button type="button" class="button" id="nnBtn">Run neural network <span class="sub">downloads ~31 MB once</span></button>
+        <span class="hint" id="nnStatus" role="status" aria-live="polite"></span>
       </div>
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </section>
@@ -113,6 +118,10 @@ python -m http.server -d docs 8000</code></pre>
             <label for="tiles">Contrast regions <span class="sub">CLAHE tiles per side</span></label>
             <input type="range" id="tiles" min="2" max="16" step="1"><output id="tilesOut" for="tiles"></output>
           </div>
+          <div class="slider">
+            <label for="clipLimit">Contrast limit <span class="sub">CLAHE clip; higher = punchier edges</span></label>
+            <input type="range" id="clipLimit" min="0.5" max="8" step="0.5"><output id="clipLimitOut" for="clipLimit"></output>
+          </div>
         </div>
       </details>
       <p class="hint warn" id="sigmaWarning" hidden>Detail size must be smaller than halo size. Showing the last valid result.</p>
@@ -128,8 +137,9 @@ python -m http.server -d docs 8000</code></pre>
         <thead>
           <tr>
             <th scope="col">Image</th>
-            <th scope="col">PSNR <span class="unit">dB, higher is better</span></th>
-            <th scope="col">SSIM <span class="unit">0 to 1, higher is better</span></th>
+            <th scope="col">PSNR <span class="unit">dB, fitted, higher is better</span></th>
+            <th scope="col">SSIM <span class="unit">fitted, 0 to 1, higher is better</span></th>
+            <th scope="col">Dice <span class="unit">segmentation overlap, 0 to 1</span></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -154,15 +164,24 @@ python -m http.server -d docs 8000</code></pre>
     <details class="panel how">
       <summary>How it works</summary>
       <ol>
+        <li><strong>Flip the polarity.</strong> Phase contrast shows cells darker than the
+          background; inverting makes them bright, which is what thresholding expects.</li>
+        <li><strong>Flatten the background.</strong> Uneven illumination is a slow brightness
+          change across the field. A grey-level <em>opening</em> erases everything narrower than
+          a cell, leaving only the background, which is smoothed and subtracted. Without this, one
+          side of the image can be brighter than the cells on the other.</li>
         <li><strong>Remove the halo.</strong> The image is blurred twice, once a little
           (detail size) and once a lot (halo size). The difference between them picks out
-          the halo, and a share of it (strength) is subtracted.</li>
+          the halo band, and a share of it (strength) is subtracted.</li>
         <li><strong>Boost local contrast.</strong> CLAHE brightens faint cell edges region by
-          region without amplifying the flat background.</li>
+          region; the contrast limit caps how far it amplifies the flat background. The result is
+          then scaled so the 1st and 99.8th percentiles map to black and white, so a single hot
+          pixel cannot set the scale.</li>
         <li><strong>Optional neural network.</strong> A U-Net looks at the result and predicts
-          only the leftover halo, which is then subtracted. Because it removes artifacts
-          instead of redrawing the image, cell shapes are left alone. It is too large to run
-          in a browser, so its output here is pre-computed.</li>
+          only the leftover artifact, which is then subtracted. Its output for the samples is
+          pre-computed at the default settings; for your own image it can run here in the
+          browser (a one-off ~31 MB download, a few seconds to a minute depending on size).
+          It was trained on synthetic images only.</li>
       </ol>
       <p class="hint">Details, training setup and caveats are in the
         <a href="https://github.com/akshayaa-403/phase-contrast-denoising#readme">README</a>.</p>

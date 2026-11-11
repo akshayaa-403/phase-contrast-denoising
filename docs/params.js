@@ -35,7 +35,7 @@
     {
       key: 'clipLimit', yaml: 'clahe_clip_limit', group: 'clahe', hash: 'clip',
       symbol: 'clip', name: 'contrast limit', unit: '× a flat histogram',
-      min: 0.5, max: 10, step: 0.5, digits: 1,
+      min: 0.5, max: 8, step: 0.5, digits: 1,
     },
     {
       key: 'tiles', yaml: 'clahe_grid_size', group: 'clahe', hash: 'tiles',
@@ -68,21 +68,30 @@
     return values;
   }
 
-  /** Manifest defaults ({sigma1, …, tilesX, tilesY, bits}) -> page params. */
+  /**
+   * Settings that are not on a slider but must still reach cv.js: polarity,
+   * background-flattening radius and the normalisation percentiles. They come
+   * from the manifest (i.e. the YAML config) and pass through unchanged.
+   */
+  const FIXED = ['invert', 'backgroundRadius', 'pLow', 'pHigh'];
+
+  /** Manifest defaults ({sigma1, …, tilesX, tilesY, bits, invert, …}) -> page params. */
   function fromManifest(defaults) {
-    return {
+    const params = {
       sigma1: defaults.sigma1,
       sigma2: defaults.sigma2,
       alpha: defaults.alpha,
       clipLimit: defaults.clipLimit,
       tiles: defaults.tilesX,
-      bits: defaults.bits || 16,
+      bits: defaults.bits || 8,
     };
+    for (const key of FIXED) if (key in defaults) params[key] = defaults[key];
+    return params;
   }
 
   /** Page params -> cv.js runCvPipeline options. */
   function toOptions(params) {
-    return {
+    const options = {
       sigma1: params.sigma1,
       sigma2: params.sigma2,
       alpha: params.alpha,
@@ -91,6 +100,8 @@
       tilesY: params.tiles,
       bits: params.bits,
     };
+    for (const key of FIXED) if (key in params) options[key] = params[key];
+    return options;
   }
 
   /**
@@ -106,6 +117,7 @@
       out[c.key] = ok ? snap(c, v) : fallback[c.key];
     }
     out.bits = params.bits === 8 || params.bits === '8' ? 8 : params.bits === 16 || params.bits === '16' ? 16 : fallback.bits;
+    for (const key of FIXED) if (key in fallback) out[key] = fallback[key];
     if (!(out.sigma2 > out.sigma1)) {
       // An invalid pair: keep σ₁ and fall back to the default σ₂ if that is
       // valid, otherwise the smallest σ₂ above σ₁.
@@ -119,5 +131,5 @@
     return CONTROLS.every((c) => Math.abs(params[c.key] - defaults[c.key]) < 1e-9);
   }
 
-  return { CONTROLS, BY_KEY, snap, sigma2Min, sweep, fromManifest, toOptions, sanitize, atDefaults };
+  return { CONTROLS, BY_KEY, FIXED, snap, sigma2Min, sweep, fromManifest, toOptions, sanitize, atDefaults };
 });

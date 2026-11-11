@@ -1,0 +1,9 @@
+-r requirements.txt
+pytest>=7.4
+ruff>=0.4
+# Gradio demo (app.py)
+gradio>=4.0.0
+# ONNX export (scripts/export_onnx.py)
+onnx>=1.15
+onnxscript>=0.1
+onnxruntime>=1.17

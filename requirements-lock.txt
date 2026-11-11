@@ -1,0 +1,36 @@
+# Exact versions this project was last tested with (Python 3.11.9, Windows, CPU).
+# Install with: pip install -r requirements-lock.txt
+# torch is pinned to the CPU build here; on a CUDA machine install torch for your CUDA version first.
+absl-py==2.5.0
+filelock==3.32.0
+fsspec==2026.6.0
+gradio==6.20.0
+grpcio==1.82.1
+ImageIO==2.37.4
+Jinja2==3.1.6
+lazy-loader==0.5
+Markdown==3.10.2
+matplotlib==3.11.1
+networkx==3.6.1
+numpy==2.4.6
+onnx==1.23.2
+onnxruntime==1.31.1
+onnxscript==0.7.2
+opencv-python-headless==5.0.0.93
+packaging==26.2
+pillow==12.3.0
+protobuf==7.35.1
+pytest==9.2.0
+PyYAML==6.0.3
+ruff==0.17.4
+scikit-image==0.26.0
+scipy==1.17.1
+sympy==1.14.0
+tensorboard==2.21.0
+tensorboard-data-server==0.7.2
+thop==0.1.1.post2209072238
+tifffile==2026.3.3
+torch==2.13.0
+tqdm==4.69.0
+typing_extensions==4.16.0
+Werkzeug==3.1.8

@@ -1,17 +1,14 @@
-"""Unit + integration tests for the clean-up pipeline."""
+"""Unit + integration tests for the classical preprocessor."""
 
 from __future__ import annotations
 
 import os
-import sys
 
 import cv2
 import numpy as np
+import pytest
 
-# Make the project root importable when run directly.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.preprocessor import Preprocessor  # noqa: E402
+from phase_cleanup.preprocessor import Preprocessor
 
 
 def test_dog_preserves_shape_and_dtype():
@@ -34,12 +31,8 @@ def test_dog_handles_color_input_as_single_channel():
 
 def test_sigma_ordering_is_enforced():
     """sigma2 <= sigma1 must raise (halo sigma must be the larger one)."""
-    try:
+    with pytest.raises(ValueError):
         Preprocessor(dog_sigma1=2.0, dog_sigma2=1.0)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("Expected ValueError for sigma2 <= sigma1")
 
 
 def test_clahe_no_nans_and_shape():
@@ -111,7 +104,7 @@ def test_integration_halo_peak_drops_30_percent():
 
 def test_pipeline_cv_only_runs_end_to_end():
     """The full pipeline (cv_only) runs on a dummy image without weights."""
-    from src.pipeline import CleanupPipeline
+    from phase_cleanup.pipeline import CleanupPipeline
     cfg = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "configs", "default_config.yaml",
@@ -123,11 +116,63 @@ def test_pipeline_cv_only_runs_end_to_end():
     assert 0.0 <= out.min() and out.max() <= 1.0
 
 
-if __name__ == "__main__":
-    fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    passed = 0
-    for fn in fns:
-        fn()
-        print(f"  PASS  {fn.__name__}")
-        passed += 1
-    print(f"\n[tests] {passed}/{len(fns)} passed.")
+def test_flatten_background_removes_linear_ramp():
+    """A DoG ignores a linear illumination ramp; flattening must remove it."""
+    yy, xx = np.mgrid[0:128, 0:128].astype(np.float32) / 128
+    ramp = 0.2 + 0.6 * xx + 0.1 * yy
+    img = ramp.copy()
+    cv2.circle(img, (64, 64), 6, color=float(img[64, 64] + 0.5), thickness=-1)
+    flat = Preprocessor(background_radius=10).flatten_background(img)
+    dist = np.hypot(xx * 128 - 64, yy * 128 - 64)
+    interior = (dist > 20) & (xx > 0.15) & (xx < 0.85) & (yy > 0.15) & (yy < 0.85)
+    assert np.ptp(flat[interior]) < 0.1 * np.ptp(ramp)
+    assert flat[64, 64] > 0.4  # the cell survives
+
+
+def test_flatten_disabled_is_identity():
+    img = np.random.rand(32, 32).astype(np.float32)
+    np.testing.assert_array_equal(Preprocessor(background_radius=0).flatten_background(img), img)
+
+
+def test_percentile_normalisation_ignores_hot_pixel():
+    """One saturated pixel must not squash the rest of the image (min-max would)."""
+    img = np.random.rand(64, 64).astype(np.float32) * 0.1
+    img[0, 0] = 100.0
+    robust = Preprocessor.normalize_percentile(img, 1.0, 99.8)
+    assert robust.max() <= 1.0 and robust.min() >= 0.0
+    assert np.median(robust) > 0.3
+    assert np.median(Preprocessor.normalize_01(img)) < 0.01
+
+
+def test_invert_and_polarity():
+    img = np.full((8, 8), 0.2, dtype=np.float32)
+    np.testing.assert_allclose(Preprocessor(invert=True).match_polarity(img), 0.8)
+    assert Preprocessor(invert=False).match_polarity(img)[0, 0] == pytest.approx(0.2)
+
+
+def test_uint8_clahe_clip_limit_has_effect():
+    """With 256 bins the clip limit changes the output; with 65536 it is inert."""
+    rng = np.random.default_rng(0)
+    img = cv2.GaussianBlur(rng.random((256, 256)).astype(np.float32), (0, 0), 3)
+
+    def run(clip, dtype):
+        return Preprocessor(clahe_clip_limit=clip, clahe_dtype=dtype).apply_clahe(img)
+
+    assert np.abs(run(1.0, "uint8") - run(6.0, "uint8")).max() > 1e-3
+    np.testing.assert_array_equal(run(1.0, "uint16"), run(6.0, "uint16"))
+
+
+def test_config_round_trip():
+    pre = Preprocessor(invert=True, background_radius=7, norm_percentiles=(2, 98), dog_sigma2=5)
+    assert Preprocessor.from_config(pre.to_config()).to_config() == pre.to_config()
+    assert Preprocessor.from_config(pre.to_config(), dog_alpha=0.9).dog_alpha == 0.9
+
+
+def test_process_stages_and_range():
+    pre = Preprocessor(invert=True, background_radius=8, dog_sigma2=6, norm_percentiles=(1, 99.8))
+    img = np.random.rand(96, 80).astype(np.float32)
+    stages = pre.process(img, return_stages=True)
+    assert set(stages) == {"polarity", "flat", "dog", "clahe", "out"}
+    out = stages["out"]
+    assert out.shape == img.shape and out.min() >= 0.0 and out.max() <= 1.0
+    np.testing.assert_array_equal(out, pre.process(img))

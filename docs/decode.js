@@ -6,11 +6,16 @@
  *
  * Browsers decode a 16-bit PNG to 8 bits and refuse TIFF entirely, which would
  * throw away the precision a 16-bit micrograph carries. This keeps every bit:
- * the output is float32 on the 0-255 scale the pipeline uses, computed as
- * `value / 65535 * 255` for 16-bit data, exactly as `scripts/make_demo_assets.py`
- * and `main.py` scale it. Decoding the 8-bit samples here too, rather than
- * through a canvas, means no colour management or anti-fingerprinting noise can
- * nudge a pixel before the pipeline sees it.
+ * `pixels` is float32 in [0, 1], scaled by the file's declared bit depth
+ * exactly as `phase_cleanup/image_io.to_unit_range` does -- `f32(v / 255)` or
+ * `f32(v / 65535)` -- so the page's pipeline starts from the very same numbers
+ * as `main.py`. (A float32 quotient computed in double and then rounded equals
+ * NumPy's float32 division: double rounding is innocuous for division when the
+ * wide format has >= 2p + 2 bits.) Colour is reduced to grey with OpenCV's
+ * fixed-point BT.601 formula, as `cv2.cvtColor(..., BGR2GRAY)` does before the
+ * scaling. Decoding the 8-bit samples here too, rather than through a canvas,
+ * means no colour management or anti-fingerprinting noise can nudge a pixel
+ * before the pipeline sees it.
  *
  * `inflate` is injected: DecompressionStream in a browser, zlib in Node.
  *
@@ -32,22 +37,25 @@
     return new Uint8Array(await new Response(stream).arrayBuffer());
   }
 
-  /** Collapse interleaved samples to one float32 0-255 grey channel. */
+  /**
+   * Collapse interleaved samples to one float32 grey channel in [0, 1].
+   *
+   * Grey: `f32(v / maxValue)`, NumPy's `uint.astype(float32) / max`. Colour:
+   * OpenCV's integer luma `(R*4899 + G*9617 + B*1868 + 2^13) >> 14` first, as
+   * cv2.cvtColor does for 8-bit data (and, to within one level, 16-bit).
+   */
   function toGrey(samples, width, height, channels, maxValue, invert = false) {
     const pixels = new Float32Array(width * height);
-    const top = f32(maxValue);
-    const scale = (v) => (maxValue === 255 ? v : f32(f32(v / top) * 255));
     for (let i = 0; i < pixels.length; i++) {
       let v;
       if (channels >= 3) {
         const o = i * channels;
-        // ITU-R BT.601 luma, the weights cv2.cvtColor(BGR2GRAY) uses.
-        v = 0.299 * samples[o] + 0.587 * samples[o + 1] + 0.114 * samples[o + 2];
+        v = Math.floor((samples[o] * 4899 + samples[o + 1] * 9617 + samples[o + 2] * 1868 + 8192) / 16384);
       } else {
         v = samples[i * channels];
       }
       if (invert) v = maxValue - v;
-      pixels[i] = scale(v);
+      pixels[i] = f32(v / maxValue);
     }
     return pixels;
   }

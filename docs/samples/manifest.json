@@ -2,14 +2,22 @@
   "defaults": {
     "sigma1": 1.0,
     "sigma2": 8.0,
-    "alpha": 0.6,
-    "clipLimit": 2.0,
+    "alpha": 1.5,
+    "clipLimit": 1.0,
     "tilesX": 8,
     "tilesY": 8,
-    "bits": 16
+    "bits": 8,
+    "invert": true,
+    "backgroundRadius": 10,
+    "pLow": 1.0,
+    "pHigh": 99.8
   },
   "has_model_outputs": true,
-  "residual_scale": 0.87,
+  "residual_scale": 0.75,
+  "model": {
+    "onnx": "models/phase_unet.onnx",
+    "multiple": 16
+  },
   "held_out": {
     "frames": 20,
     "of": 100,
@@ -18,70 +26,90 @@
     "paths": {
       "raw": {
         "psnr": {
-          "mean": 11.4575,
-          "min": 9.01,
-          "min_id": "img_0081"
+          "mean": 1.3594,
+          "min": 0.376,
+          "min_id": "img_0018"
+        },
+        "psnr_affine": {
+          "mean": 16.9487,
+          "min": 14.48,
+          "min_id": "img_0027"
         },
         "ssim": {
-          "mean": 0.1816,
-          "min": 0.1036,
+          "mean": -0.0221,
+          "min": -0.0425,
           "min_id": "img_0056"
         },
         "dice": {
-          "mean": 0.8942,
-          "min": 0.5558,
-          "min_id": "img_0059"
-        }
-      },
-      "cv_only_uint16": {
-        "psnr": {
-          "mean": 7.3951,
-          "min": 6.656,
-          "min_id": "img_0056"
-        },
-        "ssim": {
-          "mean": 0.0905,
-          "min": 0.0485,
-          "min_id": "img_0056"
-        },
-        "dice": {
-          "mean": 0.4798,
-          "min": 0.2919,
-          "min_id": "img_0056"
+          "mean": 0.0831,
+          "min": 0.0201,
+          "min_id": "img_0050"
         }
       },
       "cv_only_uint8": {
         "psnr": {
-          "mean": 10.9936,
-          "min": 9.146,
-          "min_id": "img_0061"
+          "mean": 15.0502,
+          "min": 12.1,
+          "min_id": "img_0081"
+        },
+        "psnr_affine": {
+          "mean": 18.4728,
+          "min": 15.6,
+          "min_id": "img_0024"
         },
         "ssim": {
-          "mean": 0.1417,
-          "min": 0.0776,
-          "min_id": "img_0056"
+          "mean": 0.1163,
+          "min": 0.037,
+          "min_id": "img_0033"
         },
         "dice": {
-          "mean": 0.8754,
-          "min": 0.4144,
-          "min_id": "img_0061"
+          "mean": 0.5904,
+          "min": 0.4376,
+          "min_id": "img_0018"
+        }
+      },
+      "cv_only_uint16": {
+        "psnr": {
+          "mean": 7.5271,
+          "min": 6.429,
+          "min_id": "img_0071"
+        },
+        "psnr_affine": {
+          "mean": 16.4734,
+          "min": 14.113,
+          "min_id": "img_0024"
+        },
+        "ssim": {
+          "mean": 0.039,
+          "min": 0.0125,
+          "min_id": "img_0097"
+        },
+        "dice": {
+          "mean": 0.3131,
+          "min": 0.1333,
+          "min_id": "img_0033"
         }
       },
       "hybrid": {
         "psnr": {
-          "mean": 20.2629,
-          "min": 15.214,
-          "min_id": "img_0081"
+          "mean": 28.9682,
+          "min": 25.01,
+          "min_id": "img_0025"
+        },
+        "psnr_affine": {
+          "mean": 29.9316,
+          "min": 26.754,
+          "min_id": "img_0027"
         },
         "ssim": {
-          "mean": 0.2771,
-          "min": 0.167,
-          "min_id": "img_0061"
+          "mean": 0.8859,
+          "min": 0.5808,
+          "min_id": "img_0081"
         },
         "dice": {
-          "mean": 0.9075,
-          "min": 0.8083,
-          "min_id": "img_0081"
+          "mean": 0.9517,
+          "min": 0.9157,
+          "min_id": "img_0097"
         }
       }
     }
@@ -96,26 +124,30 @@
       "residual": "img_0002_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 12.249,
-          "ssim": 0.2879,
-          "dice": 0.8941
+          "psnr": 1.173,
+          "psnr_affine": 16.877,
+          "ssim": -0.0164,
+          "dice": 0.0848
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 8.404,
-            "ssim": 0.1492,
-            "dice": 0.6644
-          },
           "uint8": {
-            "psnr": 10.909,
-            "ssim": 0.2194,
-            "dice": 0.9143
+            "psnr": 15.655,
+            "psnr_affine": 19.801,
+            "ssim": 0.0728,
+            "dice": 0.6769
+          },
+          "uint16": {
+            "psnr": 7.428,
+            "psnr_affine": 17.041,
+            "ssim": 0.0355,
+            "dice": 0.2517
           }
         },
         "hybrid": {
-          "psnr": 19.244,
-          "ssim": 0.3502,
-          "dice": 0.9055
+          "psnr": 28.671,
+          "psnr_affine": 29.249,
+          "ssim": 0.9157,
+          "dice": 0.9504
         }
       }
     },
@@ -128,26 +160,30 @@
       "residual": "img_0004_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 10.641,
-          "ssim": 0.2384,
-          "dice": 0.7268
+          "psnr": 1.144,
+          "psnr_affine": 14.655,
+          "ssim": -0.0232,
+          "dice": 0.1262
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 8.05,
-            "ssim": 0.1314,
-            "dice": 0.6365
-          },
           "uint8": {
-            "psnr": 10.306,
-            "ssim": 0.2016,
-            "dice": 0.7967
+            "psnr": 13.993,
+            "psnr_affine": 16.698,
+            "ssim": 0.1577,
+            "dice": 0.6331
+          },
+          "uint16": {
+            "psnr": 7.955,
+            "psnr_affine": 15.113,
+            "ssim": 0.0434,
+            "dice": 0.4083
           }
         },
         "hybrid": {
-          "psnr": 18.261,
-          "ssim": 0.2871,
-          "dice": 0.8672
+          "psnr": 28.492,
+          "psnr_affine": 29.039,
+          "ssim": 0.9549,
+          "dice": 0.953
         }
       }
     },
@@ -160,26 +196,30 @@
       "residual": "img_0018_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 10.689,
-          "ssim": 0.1881,
-          "dice": 0.9628
+          "psnr": 0.376,
+          "psnr_affine": 21.041,
+          "ssim": -0.0151,
+          "dice": 0.069
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.376,
-            "ssim": 0.0954,
-            "dice": 0.4838
-          },
           "uint8": {
-            "psnr": 10.556,
-            "ssim": 0.147,
-            "dice": 0.9523
+            "psnr": 17.05,
+            "psnr_affine": 20.941,
+            "ssim": 0.0994,
+            "dice": 0.4376
+          },
+          "uint16": {
+            "psnr": 8.358,
+            "psnr_affine": 19.464,
+            "ssim": 0.0303,
+            "dice": 0.2646
           }
         },
         "hybrid": {
-          "psnr": 18.608,
-          "ssim": 0.265,
-          "dice": 0.8955
+          "psnr": 32.415,
+          "psnr_affine": 32.42,
+          "ssim": 0.9545,
+          "dice": 0.9312
         }
       }
     },
@@ -192,26 +232,30 @@
       "residual": "img_0021_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 11.127,
-          "ssim": 0.234,
-          "dice": 0.8241
+          "psnr": 0.789,
+          "psnr_affine": 17.001,
+          "ssim": -0.0186,
+          "dice": 0.0844
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 8.155,
-            "ssim": 0.1252,
-            "dice": 0.6136
-          },
           "uint8": {
-            "psnr": 11.078,
-            "ssim": 0.1776,
-            "dice": 0.8563
+            "psnr": 15.951,
+            "psnr_affine": 18.516,
+            "ssim": 0.1326,
+            "dice": 0.5728
+          },
+          "uint16": {
+            "psnr": 7.827,
+            "psnr_affine": 16.495,
+            "ssim": 0.0353,
+            "dice": 0.3547
           }
         },
         "hybrid": {
-          "psnr": 19.028,
-          "ssim": 0.4051,
-          "dice": 0.8985
+          "psnr": 30.09,
+          "psnr_affine": 31.17,
+          "ssim": 0.9676,
+          "dice": 0.9635
         }
       }
     },
@@ -224,26 +268,30 @@
       "residual": "img_0024_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 10.676,
-          "ssim": 0.1973,
-          "dice": 0.7892
+          "psnr": 1.148,
+          "psnr_affine": 14.823,
+          "ssim": -0.0351,
+          "dice": 0.1246
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.566,
-            "ssim": 0.0956,
-            "dice": 0.5245
-          },
           "uint8": {
-            "psnr": 10.328,
-            "ssim": 0.1454,
-            "dice": 0.8532
+            "psnr": 13.387,
+            "psnr_affine": 15.6,
+            "ssim": 0.1736,
+            "dice": 0.6236
+          },
+          "uint16": {
+            "psnr": 7.824,
+            "psnr_affine": 14.113,
+            "ssim": 0.0689,
+            "dice": 0.5037
           }
         },
         "hybrid": {
-          "psnr": 20.53,
-          "ssim": 0.2963,
-          "dice": 0.9213
+          "psnr": 27.084,
+          "psnr_affine": 28.25,
+          "ssim": 0.9476,
+          "dice": 0.9476
         }
       }
     },
@@ -256,26 +304,30 @@
       "residual": "img_0025_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 9.308,
-          "ssim": 0.187,
-          "dice": 0.9444
+          "psnr": 0.819,
+          "psnr_affine": 15.912,
+          "ssim": -0.0258,
+          "dice": 0.1127
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.483,
-            "ssim": 0.1014,
-            "dice": 0.5155
-          },
           "uint8": {
-            "psnr": 10.39,
-            "ssim": 0.1475,
-            "dice": 0.8775
+            "psnr": 15.59,
+            "psnr_affine": 17.234,
+            "ssim": 0.1234,
+            "dice": 0.6062
+          },
+          "uint16": {
+            "psnr": 7.783,
+            "psnr_affine": 15.372,
+            "ssim": 0.058,
+            "dice": 0.3683
           }
         },
         "hybrid": {
-          "psnr": 20.048,
-          "ssim": 0.2796,
-          "dice": 0.9215
+          "psnr": 25.01,
+          "psnr_affine": 27.833,
+          "ssim": 0.9519,
+          "dice": 0.9391
         }
       }
     },
@@ -288,26 +340,30 @@
       "residual": "img_0027_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 12.223,
-          "ssim": 0.1409,
-          "dice": 0.9612
+          "psnr": 2.485,
+          "psnr_affine": 14.48,
+          "ssim": -0.0179,
+          "dice": 0.121
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 6.819,
-            "ssim": 0.0706,
-            "dice": 0.371
-          },
           "uint8": {
-            "psnr": 11.156,
-            "ssim": 0.1028,
-            "dice": 0.9512
+            "psnr": 14.46,
+            "psnr_affine": 17.002,
+            "ssim": 0.0612,
+            "dice": 0.6748
+          },
+          "uint16": {
+            "psnr": 6.797,
+            "psnr_affine": 14.857,
+            "ssim": 0.0399,
+            "dice": 0.3226
           }
         },
         "hybrid": {
-          "psnr": 22.721,
-          "ssim": 0.221,
-          "dice": 0.9432
+          "psnr": 25.293,
+          "psnr_affine": 26.754,
+          "ssim": 0.9169,
+          "dice": 0.9305
         }
       }
     },
@@ -320,26 +376,30 @@
       "residual": "img_0033_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 13.175,
-          "ssim": 0.1398,
-          "dice": 0.9841
+          "psnr": 1.536,
+          "psnr_affine": 19.546,
+          "ssim": -0.0162,
+          "dice": 0.0344
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 6.89,
-            "ssim": 0.0638,
-            "dice": 0.38
-          },
           "uint8": {
-            "psnr": 12.408,
-            "ssim": 0.1068,
-            "dice": 0.9701
+            "psnr": 16.712,
+            "psnr_affine": 21.029,
+            "ssim": 0.037,
+            "dice": 0.5554
+          },
+          "uint16": {
+            "psnr": 6.455,
+            "psnr_affine": 18.429,
+            "ssim": 0.0195,
+            "dice": 0.1333
           }
         },
         "hybrid": {
-          "psnr": 22.81,
-          "ssim": 0.261,
-          "dice": 0.9445
+          "psnr": 33.015,
+          "psnr_affine": 33.735,
+          "ssim": 0.676,
+          "dice": 0.9697
         }
       }
     },
@@ -352,26 +412,30 @@
       "residual": "img_0042_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 14.243,
-          "ssim": 0.2266,
-          "dice": 0.9757
+          "psnr": 0.865,
+          "psnr_affine": 16.309,
+          "ssim": -0.0205,
+          "dice": 0.0741
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.729,
-            "ssim": 0.0984,
-            "dice": 0.5304
-          },
           "uint8": {
-            "psnr": 12.652,
-            "ssim": 0.162,
-            "dice": 0.962
+            "psnr": 15.358,
+            "psnr_affine": 17.8,
+            "ssim": 0.3122,
+            "dice": 0.5605
+          },
+          "uint16": {
+            "psnr": 8.872,
+            "psnr_affine": 16.192,
+            "ssim": 0.0383,
+            "dice": 0.4163
           }
         },
         "hybrid": {
-          "psnr": 21.108,
-          "ssim": 0.3522,
-          "dice": 0.943
+          "psnr": 29.89,
+          "psnr_affine": 30.599,
+          "ssim": 0.9728,
+          "dice": 0.9626
         }
       }
     },
@@ -384,26 +448,30 @@
       "residual": "img_0050_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 11.832,
-          "ssim": 0.1679,
-          "dice": 0.896
+          "psnr": 2.719,
+          "psnr_affine": 15.795,
+          "ssim": -0.0246,
+          "dice": 0.0201
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.397,
-            "ssim": 0.0814,
-            "dice": 0.4716
-          },
           "uint8": {
-            "psnr": 10.719,
-            "ssim": 0.1335,
-            "dice": 0.8973
+            "psnr": 13.881,
+            "psnr_affine": 17.963,
+            "ssim": 0.0722,
+            "dice": 0.635
+          },
+          "uint16": {
+            "psnr": 6.582,
+            "psnr_affine": 15.585,
+            "ssim": 0.0484,
+            "dice": 0.3125
           }
         },
         "hybrid": {
-          "psnr": 20.494,
-          "ssim": 0.2946,
-          "dice": 0.9225
+          "psnr": 30.935,
+          "psnr_affine": 31.113,
+          "ssim": 0.8564,
+          "dice": 0.9662
         }
       }
     },
@@ -416,26 +484,30 @@
       "residual": "img_0051_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 12.715,
-          "ssim": 0.276,
-          "dice": 0.9766
+          "psnr": 0.627,
+          "psnr_affine": 18.812,
+          "ssim": -0.01,
+          "dice": 0.0584
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 8.027,
-            "ssim": 0.1395,
-            "dice": 0.6019
-          },
           "uint8": {
-            "psnr": 12.484,
-            "ssim": 0.2084,
-            "dice": 0.9596
+            "psnr": 18.278,
+            "psnr_affine": 21.022,
+            "ssim": 0.34,
+            "dice": 0.6128
+          },
+          "uint16": {
+            "psnr": 9.86,
+            "psnr_affine": 18.658,
+            "ssim": 0.0181,
+            "dice": 0.3469
           }
         },
         "hybrid": {
-          "psnr": 17.349,
-          "ssim": 0.325,
-          "dice": 0.8562
+          "psnr": 33.192,
+          "psnr_affine": 33.351,
+          "ssim": 0.9662,
+          "dice": 0.9619
         }
       }
     },
@@ -448,26 +520,30 @@
       "residual": "img_0052_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 12.843,
-          "ssim": 0.1444,
-          "dice": 0.9901
+          "psnr": 1.089,
+          "psnr_affine": 16.516,
+          "ssim": -0.0398,
+          "dice": 0.1079
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 6.869,
-            "ssim": 0.0567,
-            "dice": 0.3873
-          },
           "uint8": {
-            "psnr": 14.754,
-            "ssim": 0.1162,
-            "dice": 0.9843
+            "psnr": 14.286,
+            "psnr_affine": 16.343,
+            "ssim": 0.1548,
+            "dice": 0.5952
+          },
+          "uint16": {
+            "psnr": 7.678,
+            "psnr_affine": 15.044,
+            "ssim": 0.0607,
+            "dice": 0.4104
           }
         },
         "hybrid": {
-          "psnr": 22.22,
-          "ssim": 0.2778,
-          "dice": 0.968
+          "psnr": 27.116,
+          "psnr_affine": 28.293,
+          "ssim": 0.9473,
+          "dice": 0.9495
         }
       }
     },
@@ -480,26 +556,30 @@
       "residual": "img_0056_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 10.888,
-          "ssim": 0.1036,
-          "dice": 0.9651
+          "psnr": 1.902,
+          "psnr_affine": 17.948,
+          "ssim": -0.0425,
+          "dice": 0.0817
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 6.656,
-            "ssim": 0.0485,
-            "dice": 0.2919
-          },
           "uint8": {
-            "psnr": 11.165,
-            "ssim": 0.0776,
-            "dice": 0.9467
+            "psnr": 14.82,
+            "psnr_affine": 18.923,
+            "ssim": 0.0864,
+            "dice": 0.6109
+          },
+          "uint16": {
+            "psnr": 7.191,
+            "psnr_affine": 16.774,
+            "ssim": 0.0522,
+            "dice": 0.2937
           }
         },
         "hybrid": {
-          "psnr": 20.85,
-          "ssim": 0.1955,
-          "dice": 0.8885
+          "psnr": 26.723,
+          "psnr_affine": 27.669,
+          "ssim": 0.9535,
+          "dice": 0.939
         }
       }
     },
@@ -512,26 +592,30 @@
       "residual": "img_0059_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 11.021,
-          "ssim": 0.1385,
-          "dice": 0.5558
+          "psnr": 1.643,
+          "psnr_affine": 17.276,
+          "ssim": -0.0156,
+          "dice": 0.0846
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.131,
-            "ssim": 0.0766,
-            "dice": 0.497
-          },
           "uint8": {
-            "psnr": 10.053,
-            "ssim": 0.1171,
-            "dice": 0.6894
+            "psnr": 14.86,
+            "psnr_affine": 19.849,
+            "ssim": 0.0731,
+            "dice": 0.6209
+          },
+          "uint16": {
+            "psnr": 7.192,
+            "psnr_affine": 17.238,
+            "ssim": 0.0314,
+            "dice": 0.2564
           }
         },
         "hybrid": {
-          "psnr": 21.482,
-          "ssim": 0.2026,
-          "dice": 0.9006
+          "psnr": 27.194,
+          "psnr_affine": 30.824,
+          "ssim": 0.8569,
+          "dice": 0.9662
         }
       }
     },
@@ -544,26 +628,30 @@
       "residual": "img_0061_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 11.291,
-          "ssim": 0.1172,
-          "dice": 0.9518
+          "psnr": 2.631,
+          "psnr_affine": 15.092,
+          "ssim": -0.0263,
+          "dice": 0.1046
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 6.71,
-            "ssim": 0.0616,
-            "dice": 0.3303
-          },
           "uint8": {
-            "psnr": 9.146,
-            "ssim": 0.0862,
-            "dice": 0.4144
+            "psnr": 13.987,
+            "psnr_affine": 18.0,
+            "ssim": 0.0759,
+            "dice": 0.6274
+          },
+          "uint16": {
+            "psnr": 6.981,
+            "psnr_affine": 15.57,
+            "ssim": 0.05,
+            "dice": 0.3472
           }
         },
         "hybrid": {
-          "psnr": 23.335,
-          "ssim": 0.167,
-          "dice": 0.9394
+          "psnr": 31.876,
+          "psnr_affine": 32.048,
+          "ssim": 0.9035,
+          "dice": 0.9742
         }
       }
     },
@@ -576,26 +664,30 @@
       "residual": "img_0071_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 10.975,
-          "ssim": 0.164,
-          "dice": 0.9163
+          "psnr": 1.23,
+          "psnr_affine": 16.857,
+          "ssim": -0.0236,
+          "dice": 0.0694
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.408,
-            "ssim": 0.0761,
-            "dice": 0.4503
-          },
           "uint8": {
-            "psnr": 10.185,
-            "ssim": 0.1252,
-            "dice": 0.9155
+            "psnr": 13.668,
+            "psnr_affine": 16.987,
+            "ssim": 0.0605,
+            "dice": 0.5527
+          },
+          "uint16": {
+            "psnr": 6.429,
+            "psnr_affine": 15.351,
+            "ssim": 0.0397,
+            "dice": 0.2645
           }
         },
         "hybrid": {
-          "psnr": 20.369,
-          "ssim": 0.3115,
-          "dice": 0.9162
+          "psnr": 28.954,
+          "psnr_affine": 29.169,
+          "ssim": 0.8336,
+          "dice": 0.9579
         }
       }
     },
@@ -608,26 +700,30 @@
       "residual": "img_0081_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 9.01,
-          "ssim": 0.1782,
-          "dice": 0.8631
+          "psnr": 2.155,
+          "psnr_affine": 15.592,
+          "ssim": -0.0339,
+          "dice": 0.0966
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.125,
-            "ssim": 0.0877,
-            "dice": 0.4507
-          },
           "uint8": {
-            "psnr": 9.204,
-            "ssim": 0.1496,
-            "dice": 0.8141
+            "psnr": 12.1,
+            "psnr_affine": 16.897,
+            "ssim": 0.0668,
+            "dice": 0.5561
+          },
+          "uint16": {
+            "psnr": 6.597,
+            "psnr_affine": 15.368,
+            "ssim": 0.0459,
+            "dice": 0.332
           }
         },
         "hybrid": {
-          "psnr": 15.214,
-          "ssim": 0.179,
-          "dice": 0.8083
+          "psnr": 25.223,
+          "psnr_affine": 27.151,
+          "ssim": 0.5808,
+          "dice": 0.9578
         }
       }
     },
@@ -640,26 +736,30 @@
       "residual": "img_0092_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 11.699,
-          "ssim": 0.1488,
-          "dice": 0.8403
+          "psnr": 0.848,
+          "psnr_affine": 20.903,
+          "ssim": -0.0202,
+          "dice": 0.0493
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.375,
-            "ssim": 0.0758,
-            "dice": 0.4715
-          },
           "uint8": {
-            "psnr": 10.048,
-            "ssim": 0.1176,
-            "dice": 0.8805
+            "psnr": 16.384,
+            "psnr_affine": 21.084,
+            "ssim": 0.0669,
+            "dice": 0.4847
+          },
+          "uint16": {
+            "psnr": 7.832,
+            "psnr_affine": 19.121,
+            "ssim": 0.032,
+            "dice": 0.184
           }
         },
         "hybrid": {
-          "psnr": 21.572,
-          "ssim": 0.3208,
-          "dice": 0.9233
+          "psnr": 31.267,
+          "psnr_affine": 32.736,
+          "ssim": 0.9531,
+          "dice": 0.9579
         }
       }
     },
@@ -672,26 +772,30 @@
       "residual": "img_0097_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 9.74,
-          "ssim": 0.1857,
-          "dice": 0.8983
+          "psnr": 1.048,
+          "psnr_affine": 16.108,
+          "ssim": -0.0038,
+          "dice": 0.1085
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.443,
-            "ssim": 0.1012,
-            "dice": 0.4983
-          },
           "uint8": {
-            "psnr": 10.114,
-            "ssim": 0.1564,
-            "dice": 0.9042
+            "psnr": 14.726,
+            "psnr_affine": 18.46,
+            "ssim": 0.1172,
+            "dice": 0.5696
+          },
+          "uint16": {
+            "psnr": 8.053,
+            "psnr_affine": 16.886,
+            "ssim": 0.0125,
+            "dice": 0.3173
           }
         },
         "hybrid": {
-          "psnr": 18.544,
-          "ssim": 0.2596,
-          "dice": 0.8621
+          "psnr": 28.298,
+          "psnr_affine": 28.341,
+          "ssim": 0.9199,
+          "dice": 0.9157
         }
       }
     },
@@ -704,26 +808,30 @@
       "residual": "img_0099_residual.png",
       "metrics": {
         "raw": {
-          "psnr": 12.805,
-          "ssim": 0.1672,
-          "dice": 0.9674
+          "psnr": 0.961,
+          "psnr_affine": 17.431,
+          "ssim": -0.0131,
+          "dice": 0.0492
         },
         "cv_only": {
-          "uint16": {
-            "psnr": 7.29,
-            "ssim": 0.0732,
-            "dice": 0.4249
-          },
           "uint8": {
-            "psnr": 12.216,
-            "ssim": 0.1362,
-            "dice": 0.9679
+            "psnr": 15.859,
+            "psnr_affine": 19.308,
+            "ssim": 0.0433,
+            "dice": 0.6017
+          },
+          "uint16": {
+            "psnr": 6.848,
+            "psnr_affine": 16.797,
+            "ssim": 0.0201,
+            "dice": 0.1728
           }
         },
         "hybrid": {
-          "psnr": 21.471,
-          "ssim": 0.2915,
-          "dice": 0.9244
+          "psnr": 28.625,
+          "psnr_affine": 28.887,
+          "ssim": 0.6892,
+          "dice": 0.9392
         }
       }
     }

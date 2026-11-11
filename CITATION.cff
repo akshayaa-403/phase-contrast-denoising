@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Phase-Contrast Clean-Up: classical and residual U-Net halo suppression for phase-contrast microscopy"
+type: software
+authors:
+  - alias: akshayaa-403
+repository-code: "https://github.com/akshayaa-403/phase-contrast-denoising"
+license: MIT
+version: 1.0.0
+date-released: 2026-11-11
+keywords:
+  - phase-contrast microscopy
+  - halo artifact
+  - image restoration
+  - U-Net
+  - OpenCV
+references:
+  - type: article
+    title: "Understanding the phase contrast optics to restore artifact-free microscopy images for segmentation"
+    authors:
+      - family-names: Yin
+        given-names: Zhaozheng
+      - family-names: Kanade
+        given-names: Takeo
+      - family-names: Chen
+        given-names: Mei
+    journal: "Medical Image Analysis"
+    volume: 16
+    issue: 5
+    year: 2012
+  - type: article
+    title: "An objective comparison of cell-tracking algorithms"
+    authors:
+      - family-names: Ulman
+        given-names: Vladimír
+      - name: "et al."
+    journal: "Nature Methods"
+    volume: 14
+    year: 2017

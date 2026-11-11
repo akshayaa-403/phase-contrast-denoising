@@ -15,6 +15,8 @@ ENV/
 
 # ---- Notebooks / IDE / OS ----
 .ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
 .vscode/
 .idea/
 .DS_Store
@@ -22,6 +24,7 @@ Thumbs.db
 
 # ---- Project-internal docs (not part of the public repo) ----
 CLAUDE.md
+prompts/
 # Presentation/video scripts, in any of the names they get saved under.
 VIDEO_SCRIPT.md
 *video_script*.md
@@ -38,15 +41,19 @@ runs/
 *.pt
 *.ckpt
 
-# Exception: the compact fp16 pre-trained model (~62 MB, under GitHub's limit) IS
-# committed so the repo works out of the box.
-!models/
-!models/pretrained_fp16.pth
+# The pre-trained model and its ONNX export are attached to the GitHub release,
+# not committed: `python scripts/download_weights.py [--onnx]` fetches and
+# verifies them. Extra training runs (e.g. the ablation) go in runs_*/.
+models/*.onnx
+runs_*/
+docs/models/
 
 # Generated synthetic dataset (recreate with data/generate_synthetic.py)
 data/ground_truth/
 data/noisy_input/
 data/intermediate/
+data/test/
+data/real/
 # Keep the data/raw drop-in folder (and its note) but ignore images placed there
 data/raw/*
 !data/raw/README.txt
@@ -54,6 +61,7 @@ data/raw/*
 # Inference outputs + reports
 results/
 results_cv/
+results_*/
 
 # Gradio cache / temp / flagged files
 .gradio/

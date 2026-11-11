@@ -2,12 +2,16 @@ name: Deploy demo to GitHub Pages
 
 # Publishes the static docs/ folder. The demo is plain HTML/CSS/JS plus the
 # sample images committed by scripts/make_demo_assets.py -- nothing is built.
+# The ONNX model for the in-browser U-Net is not in git: it is fetched from the
+# release here and checked against its SHA-256 before it is published.
 on:
   push:
     branches: [main]
     paths:
       - "docs/**"
       - ".github/workflows/pages.yml"
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -18,6 +22,11 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: false
+
+env:
+  MODEL_URL: https://github.com/akshayaa-403/phase-contrast-denoising/releases/download/v1.0.0/phase_unet.onnx
+  # Must match FILES["phase_unet.onnx"] in scripts/download_weights.py.
+  MODEL_SHA256: 7517c031705509605c23fc0e1d396fe8264686a59a087edcaad878d19ca2bbe7
 
 jobs:
   deploy:
@@ -34,6 +43,17 @@ jobs:
             echo "::warning::docs/samples/manifest.json is missing - the demo will render its setup instructions instead of images."
           else
             python -c "import json;m=json.load(open('docs/samples/manifest.json'));print(f\"Publishing {len(m['samples'])} samples, model outputs: {m['has_model_outputs']}\")"
+          fi
+
+      - name: Fetch the ONNX model for the in-browser U-Net
+        run: |
+          mkdir -p docs/models
+          if curl -fsSL -o docs/models/phase_unet.onnx "$MODEL_URL"; then
+            echo "$MODEL_SHA256  docs/models/phase_unet.onnx" | sha256sum -c - || {
+              echo "::error::phase_unet.onnx checksum mismatch"; exit 1; }
+          else
+            rm -f docs/models/phase_unet.onnx
+            echo "::warning::No ONNX model on the release; the page will hide the in-browser U-Net."
           fi
 
       - uses: actions/configure-pages@v5

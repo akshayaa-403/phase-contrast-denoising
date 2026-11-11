@@ -1,28 +1,39 @@
 /**
- * The project's classical front-end (Difference-of-Gaussians halo suppression
- * followed by CLAHE), ported to plain JavaScript so the demo page can run it
- * live with no server and no OpenCV.js download.
+ * The project's classical front-end, ported to plain JavaScript so the demo
+ * page can run it live with no server and no OpenCV.js download. It mirrors
+ * `Preprocessor.process` in `phase_cleanup/preprocessor.py`, step for step:
  *
- * This is a deliberate re-implementation of `src/preprocessor.py`, matching
- * OpenCV's behaviour where it is observable:
+ *   1. polarity     `1 - x` (positive phase contrast shows cells dark)
+ *   2. background   grey opening with a (2r+1)^2 square, Gaussian-smoothed
+ *                   (sigma r/2), subtracted -- removes uneven illumination
+ *   3. halo (DoG)   `x - alpha * (blur(sigma1) - blur(sigma2))`
+ *   4. CLAHE        local contrast, 8-bit (256 bins) or 16-bit quantisation
+ *   5. normalise    percentiles (1 / 99.8) to [0, 1], or min-max
+ *
+ * It matches OpenCV and NumPy where the difference is observable:
  *
  *   - `GaussianBlur(src, (0,0), sigma)` derives its kernel size the way OpenCV
  *     does for float images (`ksize = round(sigma * 8 + 1) | 1`) and reflects at
  *     the border (`BORDER_REFLECT_101`).
+ *   - `morphologyEx(MORPH_OPEN, rect)` is a separable min then max filter whose
+ *     window is clipped at the border (OpenCV's default morphology border value
+ *     makes out-of-image pixels never win).
  *   - `createCLAHE(clipLimit, tileGridSize)` follows OpenCV's clahe.cpp:
  *     per-tile histograms (65536 bins for uint16, 256 for uint8), the clip
  *     limit turned into a per-bin pixel ceiling `max(int(clip * tileArea /
  *     bins), 1)` -- truncated, as the C++ `static_cast<int>` does -- excess
  *     redistributed, then bilinear interpolation between neighbouring tile LUTs.
- *   - Float arithmetic around the quantisation step is done in float32
- *     (`Math.fround`) because that is what NumPy does in the Python code, and
- *     the truncation to an integer is sensitive to the last bit.
+ *   - `np.percentile(..., method="linear")` is reproduced in float64, including
+ *     NumPy's two-sided interpolation formula.
+ *   - Float arithmetic around quantisation is done in float32 (`Math.fround`)
+ *     because that is what NumPy does in the Python code, and the truncation to
+ *     an integer is sensitive to the last bit.
  *
- * Agreement with the Python path is measured, not assumed -- see
+ * Like the Python code, it works on float32 images in [0, 1] (decode.js
+ * produces exactly the values `phase_cleanup/image_io.load_gray01` does), so
+ * every intermediate is computed from the same numbers in the same order.
+ * Agreement is measured, not assumed -- see
  * `scripts/verify_web_pipeline.py` and `scripts/check_controls.js`.
- *
- * Images are handled as Float32Array in the 0-255 range (what the Python code
- * gets from `cv2.imread`), with a final `normalize01` to [0, 1].
  *
  * UMD-wrapped: a <script> tag or `importScripts` sets `self.PhaseCV`, and
  * Node's `require` gets the same object.
@@ -191,6 +202,94 @@
     const a = f32(alpha);
     const out = new Float32Array(src.length);
     for (let i = 0; i < src.length; i++) out[i] = src[i] - f32(a * f32(small[i] - large[i]));
+    return out;
+  }
+
+  // ------------------------------------------------------------- polarity
+  /** `maxValue - x` (1 - x on [0, 1]): positive phase contrast shows cells dark; this makes them bright. */
+  function invertPolarity(src, maxValue = 1) {
+    const m = f32(maxValue);
+    const out = new Float32Array(src.length);
+    for (let i = 0; i < src.length; i++) out[i] = f32(m - src[i]);
+    return out;
+  }
+
+  // ------------------------------------------------------------- background
+  /**
+   * 1-D running min or max over a window of +-radius along rows or columns,
+   * clipped at the border. Exact (min/max never round), O(n * window).
+   */
+  function minMax1D(src, width, height, radius, horizontal, useMax) {
+    const out = new Float32Array(src.length);
+    const lines = horizontal ? height : width;
+    const length = horizontal ? width : height;
+    const stride = horizontal ? 1 : width;
+    for (let line = 0; line < lines; line++) {
+      const base = horizontal ? line * width : line;
+      for (let i = 0; i < length; i++) {
+        const lo = Math.max(0, i - radius);
+        const hi = Math.min(length - 1, i + radius);
+        let v = src[base + lo * stride];
+        for (let j = lo + 1; j <= hi; j++) {
+          const w = src[base + j * stride];
+          if (useMax ? w > v : w < v) v = w;
+        }
+        out[base + i * stride] = v;
+      }
+    }
+    return out;
+  }
+
+  /** Grey-level opening with a (2r+1) x (2r+1) square: erode, then dilate. */
+  function openRect(src, width, height, radius) {
+    const eroded = minMax1D(minMax1D(src, width, height, radius, true, false), width, height, radius, false, false);
+    return minMax1D(minMax1D(eroded, width, height, radius, true, true), width, height, radius, false, true);
+  }
+
+  /**
+   * Subtract a smooth illumination background: the opening removes every bright
+   * object narrower than the square (the cells), a Gaussian of sigma r/2 smooths
+   * away its blockiness, and the result is subtracted. The DoG cannot do this:
+   * its response to a linear brightness ramp is ~0.
+   */
+  function flattenBackground(src, width, height, radius) {
+    if (!(radius > 0)) return Float32Array.from(src);
+    const background = gaussianBlur(openRect(src, width, height, radius), width, height, radius / 2);
+    const out = new Float32Array(src.length);
+    for (let i = 0; i < src.length; i++) out[i] = f32(src[i] - background[i]);
+    return out;
+  }
+
+  // ------------------------------------------------------------- percentiles
+  /**
+   * `np.percentile(a, p)` with NumPy's default "linear" method, on a sorted
+   * Float32Array, in float64 -- including NumPy's lerp, which interpolates from
+   * the upper end when the fraction is >= 0.5.
+   */
+  function percentileSorted(sorted, p) {
+    const n = sorted.length;
+    const q = p / 100;
+    const vi = (n - 1) * q;
+    const prev = Math.min(Math.max(Math.floor(vi), 0), n - 1);
+    const next = Math.min(prev + 1, n - 1);
+    const gamma = vi - prev;
+    const a = sorted[prev];
+    const b = sorted[next];
+    const diff = f32(b - a);
+    return gamma >= 0.5 ? b - diff * (1 - gamma) : a + diff * gamma;
+  }
+
+  /** Map the low/high percentiles to 0/1 and clip, like Preprocessor.normalize_percentile. */
+  function normalizePercentile(data, low = 1, high = 99.8) {
+    const sorted = Float32Array.from(data).sort();
+    const lo = percentileSorted(sorted, low);
+    const hi = percentileSorted(sorted, high);
+    const range = hi - lo;
+    if (range < 1e-8) return normalize01(data);
+    const loF = f32(lo);
+    const rangeF = f32(range);
+    const out = new Float32Array(data.length);
+    for (let i = 0; i < data.length; i++) out[i] = clamp01(f32(f32(data[i] - loF) / rangeF));
     return out;
   }
 
@@ -424,29 +523,32 @@
     return r - x === 0.5 && (r & 1) === 1 ? r - 1 : r;
   }
 
+  /** The shipped settings (configs/default_config.yaml); the manifest overrides them. */
+  const DEFAULTS = Object.freeze({
+    sigma1: 1.0, sigma2: 8.0, alpha: 1.5, clipLimit: 1.0, tilesX: 8, tilesY: 8, bits: 8,
+    invert: true, backgroundRadius: 10, pLow: 1.0, pHigh: 99.8,
+  });
+
   /**
-   * The full CV-only pipeline, mirroring `CleanupPipeline._cv_baseline`.
+   * The full CV-only pipeline, mirroring `Preprocessor.process`.
    *
-   * @param {Float32Array} src 0-255 grayscale
-   * @param {object} options sigma1, sigma2, alpha, clipLimit, tilesX, tilesY, bits
-   * @returns {{dog: Float32Array, clahe: Float32Array, result: Float32Array}}
-   *   `result` is the [0, 1] output; the intermediates are returned for the
-   *   stage-by-stage view.
+   * @param {Float32Array} src grayscale in [0, 1], as decode.js returns it
+   * @param {object} options sigma1, sigma2, alpha, clipLimit, tilesX, tilesY,
+   *   bits, invert, backgroundRadius, pLow, pHigh (null pLow/pHigh = min-max)
+   * @returns {{polarity, flat, dog, clahe, result}} `result` is the [0, 1]
+   *   output; the intermediates are returned for stage-by-stage views.
    */
   function runCvPipeline(src, width, height, options) {
-    const {
-      sigma1 = 1.0,
-      sigma2 = 8.0,
-      alpha = 0.6,
-      clipLimit = 2.0,
-      tilesX = 8,
-      tilesY = 8,
-      bits = 16,
-    } = options || {};
-
-    const dog = haloSuppressionDoG(src, width, height, sigma1, sigma2, alpha);
-    const clahe = applyClahe(dog, width, height, clipLimit, tilesX, tilesY, bits);
-    return { dog, clahe, result: normalize01(clahe) };
+    const o = { ...DEFAULTS };
+    for (const [k, v] of Object.entries(options || {})) if (v !== undefined) o[k] = v;
+    const polarity = o.invert ? invertPolarity(src, 1) : Float32Array.from(src);
+    const flat = flattenBackground(polarity, width, height, o.backgroundRadius);
+    const dog = haloSuppressionDoG(flat, width, height, o.sigma1, o.sigma2, o.alpha);
+    const clahe = applyClahe(dog, width, height, o.clipLimit, o.tilesX, o.tilesY, o.bits);
+    const result = o.pLow == null || o.pHigh == null
+      ? normalize01(clahe)
+      : normalizePercentile(clahe, o.pLow, o.pHigh);
+    return { polarity, flat, dog, clahe, result };
   }
 
   /** Area-average downscale, for previews of large images and thumbnails. */
@@ -476,11 +578,14 @@
     return v < 0 ? 0 : v > 1 ? 1 : v;
   }
 
-  /** PSNR in dB between two [0, 1] images. */
+  /**
+   * PSNR in dB, data range 1. Inputs are not clipped, like
+   * `phase_cleanup.metrics.psnr`: an overshoot is an error.
+   */
   function psnr(a, b) {
     let mse = 0;
     for (let i = 0; i < a.length; i++) {
-      const d = clamp01(a[i]) - clamp01(b[i]);
+      const d = a[i] - b[i];
       mse += d * d;
     }
     mse /= a.length;
@@ -533,8 +638,8 @@
     const BB = new Float64Array(N);
     const AB = new Float64Array(N);
     for (let i = 0; i < N; i++) {
-      const va = clamp01(a[i]);
-      const vb = clamp01(b[i]);
+      const va = a[i];
+      const vb = b[i];
       A[i] = va; B[i] = vb; AA[i] = va * va; BB[i] = vb * vb; AB[i] = va * vb;
     }
     const sA = windowSums(A, width, height, windowSize);
@@ -556,6 +661,36 @@
         ((meanA * meanA + meanB * meanB + C1) * (varA + varB + C2));
     }
     return total / sA.length;
+  }
+
+  /**
+   * `a * pred + b` with a, b the least-squares fit to `target` (float64), as
+   * `phase_cleanup.metrics.affine_match`; a constant `pred` gives target's mean.
+   */
+  function affineMatch(pred, target) {
+    const n = pred.length;
+    let mx = 0;
+    let my = 0;
+    for (let i = 0; i < n; i++) { mx += pred[i]; my += target[i]; }
+    mx /= n; my /= n;
+    let sxx = 0;
+    let sxy = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = pred[i] - mx;
+      sxx += dx * dx;
+      sxy += dx * (target[i] - my);
+    }
+    const out = new Float32Array(n);
+    if (sxx / n < 1e-12) return out.fill(my);
+    const a = sxy / sxx;
+    const b = my - a * mx;
+    for (let i = 0; i < n; i++) out[i] = a * pred[i] + b;
+    return out;
+  }
+
+  /** PSNR after fitting `pred` to `target` with `a * x + b` (CARE-style). */
+  function psnrAffine(pred, target) {
+    return psnr(affineMatch(pred, target), target);
   }
 
   // -------------------------------------------------- Otsu segmentation
@@ -635,7 +770,7 @@
   }
 
   /**
-   * Port of `src/report.py::_otsu_dice`: segment both images with Otsu and
+   * Port of `phase_cleanup.metrics.otsu_dice`: segment both images with Otsu and
    * report how well the cell masks overlap. 1 is a perfect match.
    */
   function otsuDice(cleaned, truth) {
@@ -727,7 +862,13 @@
 
   return {
     gaussianKernel,
+    DEFAULTS,
     gaussianBlur,
+    invertPolarity,
+    openRect,
+    flattenBackground,
+    percentileSorted,
+    normalizePercentile,
     haloSuppressionDoG,
     applyClahe,
     claheCeiling,
@@ -735,6 +876,8 @@
     runCvPipeline,
     resizeArea,
     psnr,
+    psnrAffine,
+    affineMatch,
     ssim,
     toUint8,
     otsuThreshold,

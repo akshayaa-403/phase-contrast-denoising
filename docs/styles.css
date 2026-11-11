@@ -336,3 +336,8 @@ main, #app, .panel, .results { grid-template-columns: minmax(0, 1fr); }
   .metrics .change { display: block; margin: 0; }
   .metrics thead th .unit { display: none; }
 }
+
+/* --- in-browser neural network ------------------------------------------- */
+.nn-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nn-row .button .sub { margin-left: 6px; }
+.nn-row .button:disabled { opacity: 0.55; cursor: not-allowed; }

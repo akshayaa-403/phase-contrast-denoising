@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install (CPU-only torch keeps the download small)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt pytest ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Unit and integration tests
+        run: pytest
+
+      - name: CPU smoke run (synthetic data -> CV-only inference + report)
+        run: |
+          python data/generate_synthetic.py --num 4 --num_test 4 --size 128 --out_dir /tmp/smoke
+          python main.py --input_dir /tmp/smoke/test/noisy_input --clean_dir /tmp/smoke/test/ground_truth \
+                         --output_dir /tmp/smoke/out --mode cv_only
+          test -f /tmp/smoke/out/report.md
+
+      - name: One-epoch training smoke run
+        run: |
+          python main.py --train --data_dir /tmp/smoke --epochs 1 --batch_size 2 \
+                         --base_channels 8 --runs_dir /tmp/smoke/runs
+          test -f /tmp/smoke/runs/best.pth
+
+  web-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Every demo control changes the output
+        run: node scripts/check_controls.js
+      - name: JavaScript port matches the OpenCV pipeline
+        run: python scripts/verify_web_pipeline.py --images 5

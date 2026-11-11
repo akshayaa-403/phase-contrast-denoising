@@ -6,20 +6,20 @@
  *     node scripts/check_controls.js
  *
  * Sweeps every parameter in docs/params.js across the full range a visitor can
- * reach, on two held-out samples, through docs/cv.js (the code the page runs):
+ * reach, on two held-out samples, through docs/cv.js (the code the page runs),
+ * with the shipped non-slider settings (polarity, background flattening,
+ * percentile normalisation) taken from the manifest:
  *
- *   - 8-bit CLAHE: every parameter must change the output, at every value
- *     other than its default.
- *   - 16-bit CLAHE (as shipped): σ₁, σ₂, α and tiles must change the output.
- *     The clip limit must have NO effect at the default 8x8 tiles on a 256 px
- *     sample, because OpenCV's per-bin ceiling max(int(clip * tileArea /
- *     65536), 1) is 1 for every clip value. That is a known bug the page
- *     discloses; if someone fixes it this check fails, as a reminder to update
- *     the note beside the clip control.
- *   - The page decides whether to call the clip control inactive from
- *     PhaseCV.claheCeiling. Wherever that says the ceiling cannot change, the
- *     output must not change either, and vice versa -- including on a large
- *     image, where 16-bit clip does work.
+ *   - 8-bit CLAHE (the default): every parameter, including the clip limit,
+ *     must change the output at every value other than its default.
+ *   - 16-bit CLAHE (opt-in, `clahe_dtype: uint16`): σ₁, σ₂, α and tiles must
+ *     change the output. The clip limit must have NO effect at 8x8 tiles on a
+ *     256 px sample, because OpenCV's per-bin ceiling max(int(clip * tileArea /
+ *     65536), 1) is 1 for every clip value -- the reason 8-bit is the default.
+ *   - PhaseCV.claheCeiling must predict whether the clip control can change
+ *     anything: wherever it says the ceiling is constant, the output must not
+ *     change either, and vice versa -- including on a large image, where
+ *     16-bit clip does work.
  *
  * Node only, no dependencies. Exits non-zero on any failure.
  */
@@ -89,8 +89,10 @@ function sweepControl(image, defaults, control, bits) {
 async function main() {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'samples', 'manifest.json'), 'utf8'));
   const defaults = PhaseParams.fromManifest(manifest.defaults);
-  // Two samples: the worst raw frame (the one the page opens on) and the best.
-  const byDice = [...manifest.samples].sort((a, b) => a.metrics.raw.dice - b.metrics.raw.dice);
+  // Two samples: the worst and best raw frame by Dice (first and last if the
+  // manifest has no per-sample metrics).
+  const rawDice = (e) => e.metrics?.raw?.dice ?? 0;
+  const byDice = [...manifest.samples].sort((a, b) => rawDice(a) - rawDice(b));
   const entries = [byDice[0], byDice[byDice.length - 1]];
 
   for (const entry of entries) {
@@ -104,9 +106,9 @@ async function main() {
         const knownDead = bits === 16 && control.key === 'clipLimit' && defaults.tiles === 8;
         if (knownDead) {
           if (unchanged.length === tested) {
-            console.log(`  ok    ${label} no effect at any of ${tested} values (the known 16-bit clip bug, disclosed on the page)`);
+            console.log(`  ok    ${label} no effect at any of ${tested} values (expected for opt-in 16-bit CLAHE; the default is 8-bit)`);
           } else {
-            fail(`${label} now changes the output at ${tested - unchanged.length} value(s): the 16-bit clip bug looks fixed; update the clip note in docs/app.js and the README`);
+            fail(`${label} now changes the output at ${tested - unchanged.length} value(s): 16-bit clip is no longer inert; update the CLAHE notes in the README and config`);
           }
         } else if (unchanged.length) {
           fail(`${label} left the output unchanged at ${unchanged.join(', ')}`);
@@ -141,11 +143,11 @@ async function main() {
     if (consistent) {
       console.log(`  ok    ${c.name.padEnd(28)} ceiling ${range}; page says ${claimsInactive ? 'inactive' : 'active'}, output agrees`);
     } else {
-      fail(`${c.name}: ceiling ${range} but the output ${actuallyInactive ? 'never' : 'does'} change(s) -- the page's clip note would be wrong`);
+      fail(`${c.name}: ceiling ${range} but the output ${actuallyInactive ? 'never' : 'does'} change(s) -- claheCeiling no longer predicts the clip control`);
     }
   }
 
-  console.log(failures.length ? `\n${failures.length} failure(s).` : '\nPASS: every control moves the output, and the clip control\'s state is truthful.');
+  console.log(failures.length ? `\n${failures.length} failure(s).` : '\nPASS: every control moves the output, and claheCeiling predicts when clip can act.');
   process.exitCode = failures.length ? 1 : 0;
 }
 

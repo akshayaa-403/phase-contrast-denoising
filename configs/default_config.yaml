@@ -2,28 +2,51 @@
 # Default configuration for the Phase-Contrast Clean-Up Pipeline
 # -----------------------------------------------------------------------------
 # Every hyperparameter for both the classical OpenCV path and the deep-learning
-# path lives here so experiments are reproducible from a single file.
+# path lives here so experiments are reproducible from a single file. Trained
+# checkpoints record the `preprocessor` and `model` sections they were trained
+# with; the pipeline warns if you load a checkpoint under different settings.
+#
+# The preprocessor values were tuned on the *validation* split of the synthetic
+# dataset (Otsu Dice of the CV-only output); the test split was not used.
 # =============================================================================
 
 # ----- Classical OpenCV preprocessing -----------------------------------------
 preprocessor:
-  # Difference-of-Gaussians (halo suppression).
-  # sigma2 MUST be > sigma1: sigma1 tracks the cell body (high freq),
-  # sigma2 must STRADDLE the broad low-frequency halo — so it is set well above
-  # the PRD's edge-scale default of 1.6. Tune sigma2 to your halo width in px.
+  # Positive phase contrast shows cells darker than the background. Invert so
+  # cells are bright, as thresholding and the training targets expect. Set to
+  # false for negative phase contrast / images where cells are already bright.
+  invert: true
+
+  # Background flattening (grey-level opening + smoothing, subtracted). Radius
+  # in px; a little larger than the largest cell radius you want to keep. 0
+  # disables it. This is what removes uneven illumination: the DoG cannot.
+  background_radius: 10
+
+  # Difference-of-Gaussians halo suppression.
+  # sigma2 MUST be > sigma1: sigma1 tracks fine detail, sigma2 must straddle
+  # the halo, so tune sigma2 to your halo width in px.
   dog_sigma1: 1.0
   dog_sigma2: 8.0
-  dog_alpha: 0.6          # subtraction strength; higher = more aggressive halo removal
+  dog_alpha: 1.5          # subtraction strength; higher = more aggressive halo removal
 
-  # CLAHE (Contrast Limited Adaptive Histogram Equalisation).
-  clahe_clip_limit: 2.0
+  # CLAHE (Contrast Limited Adaptive Histogram Equalisation). "uint8" (256
+  # bins) is where clip_limit actually works; "uint16" (65536 bins) makes the
+  # clip limit a no-op on tiles under ~32k px. Higher clip = more visual
+  # contrast but lower segmentation Dice on the validation set.
+  clahe_clip_limit: 1.0
   clahe_grid_size: [8, 8]
+  clahe_dtype: uint8
+
+  # Output normalisation: [low, high] percentiles mapped to [0, 1] (robust to
+  # hot pixels). Remove the line (or set null) for plain min-max.
+  norm_percentiles: [1.0, 99.8]
 
 # ----- Residual U-Net ---------------------------------------------------------
 model:
   in_channels: 1
   out_channels: 1
-  base_channels: 64       # first encoder level width; doubles each level
+  base_channels: 32       # first encoder level width; doubles each level (7.8M params)
+  residual: true          # false = plain U-Net (ablation baseline only)
 
 # ----- Data -------------------------------------------------------------------
 data:
@@ -33,15 +56,26 @@ data:
 
 # ----- Training ---------------------------------------------------------------
 training:
-  epochs: 15              # enough to converge on synthetic data; raise on a GPU
+  epochs: 60
   batch_size: 16
   learning_rate: 1.0e-4
   weight_decay: 1.0e-5
   loss: l1                # "l1" (sharper) or "mse"
   scheduler_patience: 5   # ReduceLROnPlateau patience (epochs)
+  early_stopping_patience: 12
+  amp: true               # mixed precision on CUDA (ignored on CPU)
+  log_images_every: 5     # TensorBoard input/residual/output/target grid, every N epochs
   seed: 42
+
+# ----- Inference --------------------------------------------------------------
+inference:
+  tile_size: 1024         # larger images are processed in overlapping tiles
+  tile_overlap: 64        # px blended between neighbouring tiles
+  half_precision: true    # fp16 autocast on CUDA (ignored on CPU)
 
 # ----- Paths ------------------------------------------------------------------
 paths:
   runs_dir: runs
   best_checkpoint: runs/best.pth
+  last_checkpoint: runs/last.pth
+  pretrained: models/pretrained_fp16.pth
